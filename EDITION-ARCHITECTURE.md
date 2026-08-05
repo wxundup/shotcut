@@ -43,6 +43,9 @@ Two consumers share one design system:
 3. **In-app reskin** — `MainWindow::changeTheme` applies the
    EdiTogether palette (dark-first, light scheme honored) to all widgets and
    docks; `EdiTogether.Controls` restyles the QML surfaces.
+4. **In-app preview** — View → *Preview EdiTogether Interface* opens the
+   shell from bundled resources (`src/edition.qrc`), the transition path
+   from current chrome to target UX.
 
 All QML is kept `qmllint`-clean (`pragma ComponentBehavior: Bound`,
 qualified id access, required delegate properties).
