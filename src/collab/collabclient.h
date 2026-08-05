@@ -5,9 +5,9 @@
 #ifndef COLLABCLIENT_H
 #define COLLABCLIENT_H
 
-#include <QObject>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QObject>
 
 class QWebSocket;
 

@@ -21,10 +21,10 @@ CollabSession::CollabSession(MainWindow *win)
     m_debounce->setSingleShot(true);
     m_debounce->setInterval(400);
     connect(m_debounce, &QTimer::timeout, this, &CollabSession::broadcastSnapshot);
-    connect(&m_client, &CollabClient::welcomed, this,
-            [this](const QString &code, const QJsonArray &, qint64) {
-                m_roomCode = code;
-            });
+    connect(&m_client,
+            &CollabClient::welcomed,
+            this,
+            [this](const QString &code, const QJsonArray &, qint64) { m_roomCode = code; });
     connect(&m_client, &CollabClient::snapshotReceived, this, [this](const QString &xml) {
         if (m_applying)
             return;

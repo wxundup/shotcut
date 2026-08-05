@@ -6,14 +6,14 @@
 
 CollabClient::CollabClient(QObject *parent)
     : QObject(parent)
-{
-}
+{}
 
 static QWebSocket *makeSocket(QObject *parent, const QUrl &server, const QJsonObject &hello)
 {
     auto *socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, parent);
     QObject::connect(socket, &QWebSocket::connected, parent, [socket, hello]() {
-        socket->sendTextMessage(QString::fromUtf8(QJsonDocument(hello).toJson(QJsonDocument::Compact)));
+        socket->sendTextMessage(
+            QString::fromUtf8(QJsonDocument(hello).toJson(QJsonDocument::Compact)));
     });
     QObject::connect(socket, &QWebSocket::textMessageReceived, parent, [parent](const QString &text) {
         QMetaObject::invokeMethod(parent, "onText", Qt::QueuedConnection, Q_ARG(QString, text));

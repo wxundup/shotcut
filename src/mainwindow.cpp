@@ -20,9 +20,8 @@
 
 #include "Logger.h"
 #include "actions.h"
-#include "collab/collabsession.h"
-#include <QInputDialog>
 #include "autosavefile.h"
+#include "collab/collabsession.h"
 #include "commands/playlistcommands.h"
 #include "controllers/filtercontroller.h"
 #include "controllers/scopecontroller.h"
@@ -93,6 +92,7 @@
 #include "widgets/toneproducerwidget.h"
 #include "widgets/trackpropertieswidget.h"
 #include "widgets/video4linuxwidget.h"
+#include <QInputDialog>
 #ifdef Q_OS_WIN
 #include "windowstools.h"
 #endif
