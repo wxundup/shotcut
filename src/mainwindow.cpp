@@ -4247,74 +4247,47 @@ void MainWindow::changeTheme(const QString &theme)
 #else
     if (mytheme == kThemeDark) {
         QApplication::setStyle(kStyleFusion);
-        QPalette palette;
-        palette.setColor(QPalette::Window, QColor(50, 50, 50));
-        palette.setColor(QPalette::WindowText, QColor(220, 220, 220));
-        palette.setColor(QPalette::Base, QColor(30, 30, 30));
-        palette.setColor(QPalette::AlternateBase, QColor(40, 40, 40));
-        palette.setColor(QPalette::Highlight, QColor(23, 92, 118));
-        palette.setColor(QPalette::HighlightedText, Qt::white);
-        palette.setColor(QPalette::ToolTipBase, palette.color(QPalette::Highlight));
-        palette.setColor(QPalette::ToolTipText, palette.color(QPalette::WindowText));
-        palette.setColor(QPalette::Text, palette.color(QPalette::WindowText));
-        palette.setColor(QPalette::BrightText, Qt::red);
-        palette.setColor(QPalette::Button, palette.color(QPalette::Window));
-        palette.setColor(QPalette::ButtonText, palette.color(QPalette::WindowText));
-        palette.setColor(QPalette::Link, palette.color(QPalette::Highlight).lighter());
-        palette.setColor(QPalette::LinkVisited, palette.color(QPalette::Highlight));
-        palette.setColor(QPalette::PlaceholderText, palette.color(QPalette::Text).darker());
+        // EdiTogether: design-system palette
+        QPalette palette = ediTogetherPalette();
         palette.setColor(QPalette::Disabled, QPalette::Base, palette.color(QPalette::Base).darker());
         palette.setColor(QPalette::Disabled, QPalette::Text, palette.color(QPalette::Text).darker());
         palette.setColor(QPalette::Disabled, QPalette::ButtonText, Qt::darkGray);
         palette.setColor(QPalette::Disabled, QPalette::Light, Qt::transparent);
         QApplication::setPalette(palette);
         qApp->setStyleSheet(QStringLiteral(
-            "QTabBar::tab { background: #232323; color: #aaaaaa; padding: 4px 8px;"
-            " border: 1px solid #1a1a1a; }"
+            "QTabBar::tab { background: #232326; color: #a1a1a6; padding: 4px 8px;"
+            " border: 1px solid #1a1a1c; }"
             "QTabBar::tab:top { border-bottom: none;"
             " border-top-left-radius: 4px; border-top-right-radius: 4px; }"
             "QTabBar::tab:bottom { border-top: none;"
             " border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }"
-            "QTabBar::tab:selected { background: #323232; color: #dcdcdc; }"
-            "QTabBar::tab:top:selected { background: #404040; border-top: 2px solid #175c76; }"
-            "QTabBar::tab:bottom:selected { border-bottom: 2px solid #175c76; }"
-            "QTabBar::tab:hover:!selected { background: #2a2a2a; }"
+            "QTabBar::tab:selected { background: #2c2c2e; color: #f5f5f7; }"
+            "QTabBar::tab:top:selected { background: #3a3a3c; border-top: 2px solid #0a84ff; }"
+            "QTabBar::tab:bottom:selected { border-bottom: 2px solid #0a84ff; }"
+            "QTabBar::tab:hover:!selected { background: #2a2a2d; }"
             "QTabBar::tab:top:!selected { margin-top: 2px; }"
             "QTabBar::tab:bottom:!selected { margin-bottom: 2px; }"));
         QIcon::setThemeName(kThemeDark);
         ::qputenv("QT_QUICK_CONTROLS_CONF", ":/resources/qtquickcontrols2-dark.conf");
     } else if (mytheme == "light") {
         QApplication::setStyle(kStyleFusion);
-        QPalette palette;
-        palette.setColor(QPalette::Window, "#efefef");
-        palette.setColor(QPalette::WindowText, "#000000");
-        palette.setColor(QPalette::Base, "#ffffff");
-        palette.setColor(QPalette::AlternateBase, "#f7f7f7");
-        palette.setColor(QPalette::Highlight, "#308cc6");
-        palette.setColor(QPalette::HighlightedText, "#ffffff");
-        palette.setColor(QPalette::ToolTipBase, "#308cc6");
-        palette.setColor(QPalette::ToolTipText, "#000000");
-        palette.setColor(QPalette::Text, "#000000");
-        palette.setColor(QPalette::BrightText, "#ffffff");
-        palette.setColor(QPalette::Button, "#efefef");
-        palette.setColor(QPalette::ButtonText, "#000000");
-        palette.setColor(QPalette::Link, "#308cc6");
-        palette.setColor(QPalette::LinkVisited, "#308cc6");
+        // EdiTogether: design-system palette
+        QPalette palette = ediTogetherLightPalette();
         palette.setColor(QPalette::Disabled, QPalette::Text, Qt::darkGray);
         palette.setColor(QPalette::Disabled, QPalette::ButtonText, Qt::darkGray);
         palette.setColor(QPalette::Disabled, QPalette::Light, Qt::transparent);
         QApplication::setPalette(palette);
         qApp->setStyleSheet(QStringLiteral(
-            "QTabBar::tab { background: #c8c8c8; color: #222222; padding: 4px 8px;"
-            " border: 1px solid #c5c5c5; }"
+            "QTabBar::tab { background: #ececee; color: #6e6e73; padding: 4px 8px;"
+            " border: 1px solid #d6d6d8; }"
             "QTabBar::tab:top { border-bottom: none;"
             " border-top-left-radius: 4px; border-top-right-radius: 4px; }"
             "QTabBar::tab:bottom { border-top: none;"
             " border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }"
-            "QTabBar::tab:selected { background: #e8e8e8; color: #000000; }"
-            "QTabBar::tab:top:selected { background: #f0f0f0; border-top: 2px solid #308cc6; }"
-            "QTabBar::tab:bottom:selected { border-bottom: 2px solid #308cc6; }"
-            "QTabBar::tab:hover:!selected { background: #e0e0e0; }"
+            "QTabBar::tab:selected { background: #fafafa; color: #1d1d1f; }"
+            "QTabBar::tab:top:selected { background: #ffffff; border-top: 2px solid #007aff; }"
+            "QTabBar::tab:bottom:selected { border-bottom: 2px solid #007aff; }"
+            "QTabBar::tab:hover:!selected { background: #f5f5f7; }"
             "QTabBar::tab:top:!selected { margin-top: 2px; }"
             "QTabBar::tab:bottom:!selected { margin-bottom: 2px; }"));
         QIcon::setThemeName(kThemeLight);
