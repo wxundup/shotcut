@@ -141,14 +141,15 @@ public:
         dir.cd("qt6");
 #endif
         addLibraryPath(dir.absolutePath());
-        setOrganizationName("Meltytech");
+        // EdiTogether: product identity (fresh settings, dark default)
+        setOrganizationName("EdiTogether");
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MAC)
-        setOrganizationDomain("shotcut.org");
+        setOrganizationDomain("editogether.local");
         setDesktopFileName("org.shotcut.Shotcut");
 #else
-        setOrganizationDomain("meltytech.com");
+        setOrganizationDomain("editogether.local");
 #endif
-        setApplicationName("Shotcut");
+        setApplicationName("EdiTogether");
         setApplicationVersion(SHOTCUT_VERSION);
 
         // Process command line options.
