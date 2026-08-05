@@ -58,22 +58,27 @@ Rectangle {
             ToolButton {
                 text: "Previous"
                 tip: "Previous edit point  (Shift+Tab)"
-                contentItem: Text { text: "⏮"; font: Theme.calloutFont; color: Theme.text; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                iconSource: Qt.resolvedUrl("icons/prev.svg")
                 onClicked: toolbar.session.playhead = Math.max(0, toolbar.session.playhead - 0.05)
             }
 
             Button {
                 kind: "primary"
                 implicitWidth: 40
-                text: toolbar.session.playing ? "❚❚" : "▶"
                 tip: toolbar.session.playing ? "Pause  (Space)" : "Play  (Space)"
                 onClicked: toolbar.session.playing = !toolbar.session.playing
+
+                contentItem: Image {
+                    source: toolbar.session.playing ? Qt.resolvedUrl("icons/pause.svg") : Qt.resolvedUrl("icons/play.svg")
+                    sourceSize: Qt.size(Theme.iconSize, Theme.iconSize)
+                    fillMode: Image.PreserveAspectFit
+                }
             }
 
             ToolButton {
                 text: "Next"
                 tip: "Next edit point  (Tab)"
-                contentItem: Text { text: "⏭"; font: Theme.calloutFont; color: Theme.text; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                iconSource: Qt.resolvedUrl("icons/next.svg")
                 onClicked: toolbar.session.playhead = Math.min(1, toolbar.session.playhead + 0.05)
             }
         }

@@ -41,9 +41,9 @@ Rectangle {
 
                 Repeater {
                     model: [
-                        { glyph: "⬚", tip: "Select  (V)" },
-                        { glyph: "✂", tip: "Razor  (C)" },
-                        { glyph: "⇹", tip: "Slip  (T)" },
+                        { icon: Qt.resolvedUrl("icons/select.svg"), tip: "Select  (V)" },
+                        { icon: Qt.resolvedUrl("icons/razor.svg"), tip: "Razor  (C)" },
+                        { icon: Qt.resolvedUrl("icons/slip.svg"), tip: "Slip  (T)" },
                     ]
 
                     ToolButton {
@@ -51,7 +51,7 @@ Rectangle {
                         required property var modelData
                         text: modelData.tip
                         tip: modelData.tip
-                        contentItem: Text { text: toolBtn.modelData.glyph; font: Theme.calloutFont; color: Theme.text; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        iconSource: modelData.icon
                     }
                 }
             }

@@ -42,7 +42,7 @@ Rectangle {
             ToolButton {
                 text: "Reset"
                 tip: "Reset all properties"
-                contentItem: Text { text: "↺"; font: Theme.calloutFont; color: Theme.text; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                iconSource: Qt.resolvedUrl("icons/reset.svg")
             }
         }
 

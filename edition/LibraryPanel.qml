@@ -41,7 +41,7 @@ Rectangle {
             ToolButton {
                 text: "Import"
                 tip: "Import media  (Ctrl+I)"
-                contentItem: Text { text: "+"; font: Theme.titleFont; color: Theme.text; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                iconSource: Qt.resolvedUrl("icons/plus.svg")
             }
         }
 
