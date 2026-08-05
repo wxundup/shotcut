@@ -93,6 +93,7 @@
 #include "widgets/trackpropertieswidget.h"
 #include "widgets/video4linuxwidget.h"
 #include <QInputDialog>
+#include <QQmlComponent>
 #ifdef Q_OS_WIN
 #include "windowstools.h"
 #endif
@@ -342,6 +343,17 @@ void MainWindow::setupAndConnectUndoStack()
     });
     QAction *leaveAction = collabMenu->addAction(tr("Leave Session"));
     connect(leaveAction, &QAction::triggered, this, [this]() { m_collab->leave(); });
+
+    // EdiTogether: preview the target shell inside the app
+    QAction *previewAction = ui->menuView->addAction(tr("Preview EdiTogether Interface"));
+    connect(previewAction, &QAction::triggered, this, [this]() {
+        auto *engine = QmlUtilities::sharedEngine();
+        engine->addImportPath("qrc:/editogether/modules");
+        QQmlComponent component(engine, QUrl("qrc:/editogether/edition/Shell.qml"));
+        QObject *window = component.create();
+        if (!window)
+            qWarning() << "EdiTogether shell:" << component.errorString();
+    });
 }
 
 void MainWindow::setupAndConnectPlayerWidget()

@@ -1,0 +1,31 @@
+<RCC>
+  <qresource prefix="/editogether">
+    <file alias="modules/EdiTogether/Theme/qmldir">qml/modules/EdiTogether/Theme/qmldir</file>
+    <file alias="modules/EdiTogether/Theme/Theme.qml">qml/modules/EdiTogether/Theme/Theme.qml</file>
+    <file alias="modules/EdiTogether/Controls/qmldir">qml/modules/EdiTogether/Controls/qmldir</file>
+    <file alias="modules/EdiTogether/Controls/Button.qml">qml/modules/EdiTogether/Controls/Button.qml</file>
+    <file alias="modules/EdiTogether/Controls/ToolButton.qml">qml/modules/EdiTogether/Controls/ToolButton.qml</file>
+    <file alias="modules/EdiTogether/Controls/TextField.qml">qml/modules/EdiTogether/Controls/TextField.qml</file>
+    <file alias="modules/EdiTogether/Controls/Slider.qml">qml/modules/EdiTogether/Controls/Slider.qml</file>
+    <file alias="modules/EdiTogether/Controls/Switch.qml">qml/modules/EdiTogether/Controls/Switch.qml</file>
+    <file alias="modules/EdiTogether/Controls/Segmented.qml">qml/modules/EdiTogether/Controls/Segmented.qml</file>
+    <file alias="modules/EdiTogether/Controls/Panel.qml">qml/modules/EdiTogether/Controls/Panel.qml</file>
+    <file alias="modules/EdiTogether/Controls/ScrubBar.qml">qml/modules/EdiTogether/Controls/ScrubBar.qml</file>
+    <file alias="edition/Shell.qml">../edition/Shell.qml</file>
+    <file alias="edition/Toolbar.qml">../edition/Toolbar.qml</file>
+    <file alias="edition/LibraryPanel.qml">../edition/LibraryPanel.qml</file>
+    <file alias="edition/PreviewPanel.qml">../edition/PreviewPanel.qml</file>
+    <file alias="edition/InspectorPanel.qml">../edition/InspectorPanel.qml</file>
+    <file alias="edition/TimelinePanel.qml">../edition/TimelinePanel.qml</file>
+    <file alias="edition/icons/play.svg">../edition/icons/play.svg</file>
+    <file alias="edition/icons/pause.svg">../edition/icons/pause.svg</file>
+    <file alias="edition/icons/prev.svg">../edition/icons/prev.svg</file>
+    <file alias="edition/icons/next.svg">../edition/icons/next.svg</file>
+    <file alias="edition/icons/plus.svg">../edition/icons/plus.svg</file>
+    <file alias="edition/icons/reset.svg">../edition/icons/reset.svg</file>
+    <file alias="edition/icons/scopes.svg">../edition/icons/scopes.svg</file>
+    <file alias="edition/icons/select.svg">../edition/icons/select.svg</file>
+    <file alias="edition/icons/razor.svg">../edition/icons/razor.svg</file>
+    <file alias="edition/icons/slip.svg">../edition/icons/slip.svg</file>
+  </qresource>
+</RCC>
