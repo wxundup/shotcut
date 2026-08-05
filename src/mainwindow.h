@@ -57,6 +57,7 @@ class NotesDock;
 class SubtitlesDock;
 class ScreenCapture;
 class HdrPreviewWindow;
+class CollabSession;
 
 class MainWindow : public QMainWindow
 {
@@ -195,6 +196,7 @@ private:
     QString m_currentFile;
     bool m_isKKeyPressed;
     QUndoStack *m_undoStack;
+    CollabSession *m_collab = nullptr;
     QDockWidget *m_historyDock;
     QActionGroup *m_profileGroup;
     QActionGroup *m_externalGroup;

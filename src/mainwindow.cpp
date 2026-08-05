@@ -20,6 +20,8 @@
 
 #include "Logger.h"
 #include "actions.h"
+#include "collab/collabsession.h"
+#include <QInputDialog>
 #include "autosavefile.h"
 #include "commands/playlistcommands.h"
 #include "controllers/filtercontroller.h"
@@ -315,6 +317,31 @@ void MainWindow::setupAndConnectUndoStack()
     ui->menuEdit->addSeparator();
     ui->mainToolBar->insertAction(ui->undoEndSeparator, undoAction);
     ui->mainToolBar->insertAction(ui->undoEndSeparator, redoAction);
+
+    // EdiTogether: local collaboration session
+    m_collab = new CollabSession(this);
+    connect(m_undoStack, &QUndoStack::indexChanged, m_collab, &CollabSession::localChanged);
+    QMenu *collabMenu = menuBar()->addMenu(tr("Collaborate"));
+    QAction *hostAction = collabMenu->addAction(tr("Start Session…"));
+    connect(hostAction, &QAction::triggered, this, [this]() {
+        m_collab->startHost();
+        showStatusMessage(tr("Hosting collaboration session"));
+    });
+    QAction *joinAction = collabMenu->addAction(tr("Join Session…"));
+    connect(joinAction, &QAction::triggered, this, [this]() {
+        bool ok = false;
+        const QString code = QInputDialog::getText(this,
+                                                   tr("Join Session"),
+                                                   tr("Invite code"),
+                                                   QLineEdit::Normal,
+                                                   QString(),
+                                                   &ok);
+        if (!ok || code.isEmpty())
+            return;
+        m_collab->join(code.toUpper().trimmed(), QSysInfo::machineHostName());
+    });
+    QAction *leaveAction = collabMenu->addAction(tr("Leave Session"));
+    connect(leaveAction, &QAction::triggered, this, [this]() { m_collab->leave(); });
 }
 
 void MainWindow::setupAndConnectPlayerWidget()
@@ -4157,6 +4184,49 @@ static const auto kStyleFusion = QStringLiteral("Fusion");
 static const auto kIconsOxygen = QStringLiteral("oxygen");
 static const auto kIconsDarkOxygen = QStringLiteral("oxygen-dark");
 
+// EdiTogether: neutral dark-first palette, single accent.
+static QPalette ediTogetherPalette()
+{
+    QPalette p;
+    p.setColor(QPalette::Window, QColor("#1c1c1e"));
+    p.setColor(QPalette::WindowText, QColor("#f5f5f7"));
+    p.setColor(QPalette::Base, QColor("#141416"));
+    p.setColor(QPalette::AlternateBase, QColor("#232326"));
+    p.setColor(QPalette::ToolTipBase, QColor("#2c2c2e"));
+    p.setColor(QPalette::ToolTipText, QColor("#f5f5f7"));
+    p.setColor(QPalette::Text, QColor("#f5f5f7"));
+    p.setColor(QPalette::Button, QColor("#2c2c2e"));
+    p.setColor(QPalette::ButtonText, QColor("#f5f5f7"));
+    p.setColor(QPalette::BrightText, Qt::red);
+    p.setColor(QPalette::Link, QColor("#0a84ff"));
+    p.setColor(QPalette::LinkVisited, QColor("#0a84ff").darker());
+    p.setColor(QPalette::Highlight, QColor("#0a84ff"));
+    p.setColor(QPalette::HighlightedText, Qt::white);
+    p.setColor(QPalette::PlaceholderText, QColor("#a1a1a6"));
+    return p;
+}
+
+static QPalette ediTogetherLightPalette()
+{
+    QPalette p;
+    p.setColor(QPalette::Window, QColor("#f5f5f7"));
+    p.setColor(QPalette::WindowText, QColor("#1d1d1f"));
+    p.setColor(QPalette::Base, QColor("#ffffff"));
+    p.setColor(QPalette::AlternateBase, QColor("#fafafa"));
+    p.setColor(QPalette::ToolTipBase, QColor("#ffffff"));
+    p.setColor(QPalette::ToolTipText, QColor("#1d1d1f"));
+    p.setColor(QPalette::Text, QColor("#1d1d1f"));
+    p.setColor(QPalette::Button, QColor("#fafafa"));
+    p.setColor(QPalette::ButtonText, QColor("#1d1d1f"));
+    p.setColor(QPalette::BrightText, Qt::red);
+    p.setColor(QPalette::Link, QColor("#007aff"));
+    p.setColor(QPalette::LinkVisited, QColor("#007aff").darker());
+    p.setColor(QPalette::Highlight, QColor("#007aff"));
+    p.setColor(QPalette::HighlightedText, Qt::white);
+    p.setColor(QPalette::PlaceholderText, QColor("#6e6e73"));
+    return p;
+}
+
 void MainWindow::changeTheme(const QString &theme)
 {
     LOG_DEBUG() << "begin";
@@ -4171,15 +4241,9 @@ void MainWindow::changeTheme(const QString &theme)
     mytheme = brightness < 0.5f ? kThemeLight : kThemeDark;
     QApplication::setStyle(kStyleFusion);
     QIcon::setThemeName(mytheme);
-#if defined(Q_OS_MAC)
-    if (mytheme == kThemeDark) {
-        auto palette = QGuiApplication::palette();
-        palette.setColor(QPalette::AlternateBase, palette.color(QPalette::Base).lighter());
-        QGuiApplication::setPalette(palette);
-    }
-#elif defined(Q_OS_WIN)
-    QGuiApplication::setPalette(style->standardPalette());
-#endif
+    // EdiTogether: design-system palette, dark-first
+    QGuiApplication::setPalette(brightness < 0.5f ? ediTogetherLightPalette()
+                                                  : ediTogetherPalette());
 #else
     if (mytheme == kThemeDark) {
         QApplication::setStyle(kStyleFusion);

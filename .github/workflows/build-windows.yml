@@ -2,13 +2,17 @@ name: build-shotcut-windows
 
 on:
   workflow_dispatch:
+  # EdiTogether: build on push to the product branch
+  push:
+    branches:
+      - editogether
   schedule:
     # nightly
     - cron: '0 8 * * *'
 
 jobs:
   build:
-    if: ${{ github.repository_owner == 'mltframework' }}
+    # EdiTogether: fork runs its own CI; S3 upload below stays upstream-only
     runs-on: windows-latest
     outputs:
       version: ${{ steps.set_version.outputs.version }}

@@ -1,0 +1,9 @@
+module EdiTogether.Controls
+Button 1.0 Button.qml
+ToolButton 1.0 ToolButton.qml
+TextField 1.0 TextField.qml
+Slider 1.0 Slider.qml
+Switch 1.0 Switch.qml
+Segmented 1.0 Segmented.qml
+Panel 1.0 Panel.qml
+ScrubBar 1.0 ScrubBar.qml
