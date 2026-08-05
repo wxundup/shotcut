@@ -24,7 +24,10 @@ CollabSession::CollabSession(MainWindow *win)
     connect(&m_client,
             &CollabClient::welcomed,
             this,
-            [this](const QString &code, const QJsonArray &, qint64) { m_roomCode = code; });
+            [this](const QString &code, const QJsonArray &, qint64) {
+                m_roomCode = code;
+                m_win->showStatusMessage(tr("Invite code: %1").arg(code), 30);
+            });
     connect(&m_client, &CollabClient::snapshotReceived, this, [this](const QString &xml) {
         if (m_applying)
             return;
