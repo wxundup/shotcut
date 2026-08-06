@@ -31,6 +31,13 @@ ApplicationWindow {
         property bool snap: true
         property string selectedClip: "A007_Take1"
         property string inviteCode: ""
+        property int zoomIndex: 0
+
+        // Master levels, only meaningful while transport runs.
+        property real masterLeft: 0.0
+        property real masterRight: 0.0
+        property real masterPeakLeft: 0.0
+        property real masterPeakRight: 0.0
 
         property var collaborators: [
             { name: "You",      initials: "YJ", hue: "#0a84ff" },
@@ -133,6 +140,43 @@ ApplicationWindow {
         onTriggered: {
             sessionModel.playhead =
                 (sessionModel.playhead + 0.033 / sessionModel.duration) % 1.0
+
+            // Meters follow the playhead's position in the stand-in peaks so
+            // they move with the material rather than at random.
+            const t = sessionModel.playhead * 240
+            const l = 0.45 + 0.35 * Math.abs(Math.sin(t / 3.1))
+            const r = 0.42 + 0.38 * Math.abs(Math.sin(t / 2.7 + 0.6))
+            sessionModel.masterLeft = l
+            sessionModel.masterRight = r
+            sessionModel.masterPeakLeft = Math.max(l, sessionModel.masterPeakLeft * 0.97)
+            sessionModel.masterPeakRight = Math.max(r, sessionModel.masterPeakRight * 0.97)
+
+            // Audio track meters follow their own fader.
+            const next = sessionModel.tracks.map(function (track, i) {
+                if (!track.audio)
+                    return track
+                const wobble = 0.5 + 0.4 * Math.abs(Math.sin(t / (2.3 + i)))
+                return Object.assign({}, track, {
+                    level: track.muted ? 0 : wobble * track.volume
+                })
+            })
+            sessionModel.tracks = next
+        }
+    }
+
+    // Silence the meters when transport stops.
+    Connections {
+        target: sessionModel
+        function onPlayingChanged() {
+            if (!sessionModel.playing) {
+                sessionModel.masterLeft = 0
+                sessionModel.masterRight = 0
+                sessionModel.masterPeakLeft = 0
+                sessionModel.masterPeakRight = 0
+                sessionModel.tracks = sessionModel.tracks.map(function (track) {
+                    return track.audio ? Object.assign({}, track, { level: 0 }) : track
+                })
+            }
         }
     }
 

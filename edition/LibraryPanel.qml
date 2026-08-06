@@ -1,5 +1,5 @@
 /*
- * Media library: search, kind filter, clip grid.
+ * Media library: search, kind filter, grid or list.
  */
 pragma ComponentBehavior: Bound
 import QtQuick
@@ -12,6 +12,37 @@ Rectangle {
     id: library
 
     required property var session
+
+    property string query: ""
+    property int kindIndex: 0
+    property bool listView: false
+
+    readonly property var allItems: [
+        { label: "A003_Take2.mp4", dur: "00:42", kind: "video", tint: "#3a5f8a", thumb: "thumbs/take2-a.svg" },
+        { label: "A007_Take1.mp4", dur: "01:07", kind: "video", tint: "#3a5f8a", thumb: "thumbs/take1-a.svg" },
+        { label: "B012_Wide.mp4",  dur: "00:18", kind: "video", tint: "#41546e", thumb: "thumbs/wide-a.svg" },
+        { label: "Drone_04.mp4",   dur: "00:33", kind: "video", tint: "#2f5d50", thumb: "thumbs/drone-a.svg" },
+        { label: "VO_Final.wav",   dur: "02:14", kind: "audio", tint: "#33604a", thumb: "" },
+        { label: "Score_Loop.wav", dur: "03:01", kind: "audio", tint: "#2e6a68", thumb: "" },
+        { label: "Title Intro",    dur: "00:04", kind: "title", tint: "#4a4470", thumb: "" },
+        { label: "Lower Third",    dur: "00:06", kind: "title", tint: "#4a4470", thumb: "" },
+    ]
+
+    readonly property var kinds: ["all", "video", "audio", "title"]
+
+    readonly property var items: allItems.filter(function (item) {
+        const kind = library.kinds[library.kindIndex]
+        if (kind !== "all" && item.kind !== kind)
+            return false
+        if (library.query === "")
+            return true
+        return item.label.toLowerCase().indexOf(library.query.toLowerCase()) !== -1
+    })
+
+    function baseName(label) {
+        const dot = label.lastIndexOf(".")
+        return dot === -1 ? label : label.substring(0, dot)
+    }
 
     color: Theme.panel
 
@@ -33,38 +64,70 @@ Rectangle {
             spacing: Theme.s
 
             Text {
-                text: "Library"
+                text: qsTr("Library")
                 font: Theme.titleFont
                 color: Theme.text
                 Layout.fillWidth: true
             }
 
             ToolButton {
-                text: "Import"
-                tip: "Import media  (Ctrl+I)"
+                text: qsTr("View")
+                tip: library.listView ? qsTr("Show as grid") : qsTr("Show as list")
+                onClicked: library.listView = !library.listView
+
+                contentItem: Column {
+                    spacing: 2
+                    Repeater {
+                        model: library.listView ? 3 : 2
+                        Rectangle {
+                            width: Theme.iconSize
+                            height: library.listView ? 2 : 5
+                            radius: 1
+                            color: Theme.textSecondary
+                        }
+                    }
+                }
+            }
+
+            ToolButton {
+                text: qsTr("Import")
+                tip: qsTr("Import media  (Ctrl+I)")
                 iconSource: Qt.resolvedUrl("icons/plus.svg")
             }
         }
 
         TextField {
             Layout.fillWidth: true
-            placeholderText: "Search"
+            placeholderText: qsTr("Search")
+            onTextChanged: library.query = text
         }
 
         Segmented {
             Layout.fillWidth: true
-            items: ["Media", "Audio", "Titles"]
-            currentIndex: 0
+            items: [qsTr("All"), qsTr("Video"), qsTr("Audio"), qsTr("Titles")]
+            currentIndex: library.kindIndex
+            onActivated: (index) => library.kindIndex = index
+        }
+
+        Text {
+            text: library.items.length === 0
+                ? qsTr("Nothing matches")
+                : qsTr("%1 items").arg(library.items.length)
+            font: Theme.captionFont
+            color: Theme.textTertiary
+            Layout.fillWidth: true
         }
 
         GridView {
             id: grid
+            visible: !library.listView
             Layout.fillWidth: true
             Layout.fillHeight: true
             cellWidth: (width - Theme.s) / 2
             cellHeight: cellWidth * 0.62 + 22
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            model: library.items
 
             ScrollBar.vertical: ScrollBar {
                 policy: grid.contentHeight > grid.height
@@ -72,20 +135,12 @@ Rectangle {
                 width: Theme.scrollbar
             }
 
-            model: ListModel {
-                ListElement { label: "A003_Take2.mp4"; dur: "00:42"; tint: "#3a5f8a" }
-                ListElement { label: "A007_Take1.mp4"; dur: "01:07"; tint: "#3a5f8a" }
-                ListElement { label: "B012_Wide.mp4";  dur: "00:18"; tint: "#41546e" }
-                ListElement { label: "Drone_04.mp4";   dur: "00:33"; tint: "#2f5d50" }
-                ListElement { label: "VO_Final.wav";   dur: "02:14"; tint: "#33604a" }
-                ListElement { label: "Score_Loop.wav"; dur: "03:01"; tint: "#2e6a68" }
-            }
-
             delegate: Item {
                 id: mediaItem
-                required property string label
-                required property string dur
-                required property color tint
+                required property var modelData
+                readonly property bool selected:
+                    library.session.selectedClip === library.baseName(modelData.label)
+
                 width: grid.cellWidth - Theme.xs
                 height: grid.cellHeight
 
@@ -97,22 +152,50 @@ Rectangle {
                         width: parent.width
                         height: parent.height - 20
                         radius: Theme.radiusControl
+                        clip: true
                         color: thumbMouse.containsMouse
-                            ? Qt.lighter(mediaItem.tint, 1.12) : mediaItem.tint
+                            ? Qt.lighter(mediaItem.modelData.tint, 1.12)
+                            : mediaItem.modelData.tint
                         border.width: 2
-                        border.color: library.session.selectedClip
-                            === mediaItem.label.split(".")[0]
-                            ? Theme.accent : "transparent"
+                        border.color: mediaItem.selected ? Theme.accent : "transparent"
 
                         Behavior on color { ColorAnimation { duration: Theme.fast } }
 
-                        Text {
+                        Image {
+                            anchors.fill: parent
+                            source: mediaItem.modelData.thumb === ""
+                                ? "" : Qt.resolvedUrl(mediaItem.modelData.thumb)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            visible: mediaItem.modelData.thumb !== ""
+                        }
+
+                        // audio items get peaks instead of a frame
+                        Waveform {
+                            anchors.fill: parent
+                            anchors.margins: Theme.xs
+                            visible: mediaItem.modelData.kind === "audio"
+                            peaks: library.session.peaksFor(
+                                mediaItem.modelData.label.length,
+                                Math.max(8, Math.floor(width / 3)))
+                        }
+
+                        Rectangle {
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
-                            anchors.margins: Theme.xs
-                            text: mediaItem.dur
-                            font: Theme.captionFont
-                            color: Theme.textOnAccent
+                            anchors.margins: Theme.xxs
+                            width: durText.width + Theme.xs
+                            height: durText.height + 2
+                            radius: 2
+                            color: Qt.rgba(0, 0, 0, 0.55)
+
+                            Text {
+                                id: durText
+                                anchors.centerIn: parent
+                                text: mediaItem.modelData.dur
+                                font: Theme.captionFont
+                                color: "#ffffff"
+                            }
                         }
 
                         MouseArea {
@@ -120,17 +203,94 @@ Rectangle {
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: library.session.selectedClip
-                                = mediaItem.label.split(".")[0]
+                                = library.baseName(mediaItem.modelData.label)
                         }
                     }
 
                     Text {
                         width: parent.width
-                        text: mediaItem.label
+                        text: mediaItem.modelData.label
                         font: Theme.captionFont
-                        color: Theme.textSecondary
+                        color: mediaItem.selected ? Theme.text : Theme.textSecondary
                         elide: Text.ElideMiddle
                     }
+                }
+            }
+        }
+
+        ListView {
+            id: list
+            visible: library.listView
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            spacing: 1
+            boundsBehavior: Flickable.StopAtBounds
+            model: library.items
+
+            ScrollBar.vertical: ScrollBar {
+                policy: list.contentHeight > list.height
+                    ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                width: Theme.scrollbar
+            }
+
+            delegate: Rectangle {
+                id: row
+                required property var modelData
+                readonly property bool selected:
+                    library.session.selectedClip === library.baseName(modelData.label)
+
+                width: list.width
+                height: 30
+                radius: Theme.radiusControl
+                color: row.selected ? Theme.selected
+                     : rowMouse.containsMouse ? Theme.hover
+                     : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Theme.xs
+                    anchors.rightMargin: Theme.xs
+                    spacing: Theme.s
+
+                    Rectangle {
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 18
+                        radius: 2
+                        clip: true
+                        color: row.modelData.tint
+
+                        Image {
+                            anchors.fill: parent
+                            source: row.modelData.thumb === ""
+                                ? "" : Qt.resolvedUrl(row.modelData.thumb)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            visible: row.modelData.thumb !== ""
+                        }
+                    }
+
+                    Text {
+                        text: row.modelData.label
+                        font: Theme.bodyFont
+                        color: row.selected ? Theme.text : Theme.textSecondary
+                        elide: Text.ElideMiddle
+                        Layout.fillWidth: true
+                    }
+
+                    Text {
+                        text: row.modelData.dur
+                        font: Theme.timecodeFont
+                        color: Theme.textTertiary
+                    }
+                }
+
+                MouseArea {
+                    id: rowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: library.session.selectedClip
+                        = library.baseName(row.modelData.label)
                 }
             }
         }
