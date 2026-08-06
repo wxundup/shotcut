@@ -230,6 +230,95 @@ ApplicationWindow {
             return set.map(function (p) { return Qt.resolvedUrl(p) })
         }
 
+        // ---- clip editing ---------------------------------------------------
+        // Edge points a dragged clip can snap to: the playhead, the sequence
+        // ends, and every other clip's boundaries on any track.
+        function snapTargets(trackIndex, clipIndex) {
+            const out = [0, 1, playhead]
+            for (var t = 0; t < tracks.length; t++) {
+                const clips = tracks[t].clips
+                for (var c = 0; c < clips.length; c++) {
+                    if (t === trackIndex && c === clipIndex)
+                        continue
+                    out.push(clips[c].start)
+                    out.push(clips[c].start + clips[c].width)
+                }
+            }
+            return out
+        }
+
+        // Returns {value, distance}: distance is Infinity when nothing was
+        // close enough, so callers can tell a real snap from a no-op.
+        function nearestSnap(value, targets, tolerance) {
+            if (!snap)
+                return { value: value, distance: Infinity }
+            let best = value
+            let bestDist = Infinity
+            for (var i = 0; i < targets.length; i++) {
+                const d = Math.abs(targets[i] - value)
+                if (d <= tolerance && d < bestDist) {
+                    bestDist = d
+                    best = targets[i]
+                }
+            }
+            return { value: best, distance: bestDist }
+        }
+
+        function snapValue(value, targets, tolerance) {
+            return nearestSnap(value, targets, tolerance).value
+        }
+
+        function withClip(trackIndex, clipIndex, fn) {
+            const nextTracks = tracks.slice()
+            const track = Object.assign({}, nextTracks[trackIndex])
+            const clips = track.clips.slice()
+            const clip = Object.assign({}, clips[clipIndex])
+            fn(clip)
+            clips[clipIndex] = clip
+            track.clips = clips
+            nextTracks[trackIndex] = track
+            tracks = nextTracks
+        }
+
+        // Move a clip along its track. Start is clamped to the sequence and
+        // snapped to nearby edges.
+        function moveClip(trackIndex, clipIndex, newStart, tolerance) {
+            const clip = tracks[trackIndex].clips[clipIndex]
+            const targets = snapTargets(trackIndex, clipIndex)
+            let start = Math.max(0, Math.min(1 - clip.width, newStart))
+            // Either edge may snap; take whichever is genuinely closer.
+            const head = nearestSnap(start, targets, tolerance)
+            const tail = nearestSnap(start + clip.width, targets, tolerance)
+            if (head.distance <= tail.distance)
+                start = head.value
+            else
+                start = tail.value - clip.width
+            start = Math.max(0, Math.min(1 - clip.width, start))
+            withClip(trackIndex, clipIndex, function (c) { c.start = start })
+        }
+
+        // Trim an edge. The opposite edge stays put and the clip keeps a
+        // minimum visible length.
+        function trimClip(trackIndex, clipIndex, edge, position, tolerance) {
+            const clip = tracks[trackIndex].clips[clipIndex]
+            const targets = snapTargets(trackIndex, clipIndex)
+            const minWidth = 0.01
+            const snapped = snapValue(position, targets, tolerance)
+            if (edge === "in") {
+                const end = clip.start + clip.width
+                const start = Math.max(0, Math.min(end - minWidth, snapped))
+                withClip(trackIndex, clipIndex, function (c) {
+                    c.start = start
+                    c.width = end - start
+                })
+            } else {
+                const end = Math.max(clip.start + minWidth, Math.min(1, snapped))
+                withClip(trackIndex, clipIndex, function (c) {
+                    c.width = end - c.start
+                })
+            }
+        }
+
         function setTrackProperty(index, key, value) {
             const copy = tracks.slice()
             copy[index] = Object.assign({}, copy[index])

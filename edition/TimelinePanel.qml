@@ -28,6 +28,9 @@ Rectangle {
     readonly property int rulerDivisions:
         Math.max(4, Math.min(48, Math.round(laneWidth / 130)))
 
+    // Snapping is a fixed number of pixels, so it feels the same at any zoom.
+    readonly property real snapTolerance: 8 / Math.max(1, laneWidth)
+
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -226,6 +229,7 @@ Rectangle {
                                 Rectangle {
                                     id: clip
                                     required property var modelData
+                                    required property int index
                                     readonly property bool selected:
                                         timeline.session.selectedClip === modelData.label
                                     readonly property color base:
@@ -301,13 +305,105 @@ Rectangle {
                                         width: parent.width - Theme.s
                                     }
 
+                                    // Trim handles appear on hover at either
+                                    // edge; the body drags the whole clip.
+                                    Rectangle {
+                                        anchors.left: parent.left
+                                        anchors.top: parent.top
+                                        anchors.bottom: parent.bottom
+                                        width: 6
+                                        color: Theme.text
+                                        opacity: inHandle.containsMouse || inHandle.pressed
+                                            ? 0.75 : (clipMouse.containsMouse ? 0.3 : 0)
+                                        visible: !track.modelData.locked
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: Theme.fast }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.bottom: parent.bottom
+                                        width: 6
+                                        color: Theme.text
+                                        opacity: outHandle.containsMouse || outHandle.pressed
+                                            ? 0.75 : (clipMouse.containsMouse ? 0.3 : 0)
+                                        visible: !track.modelData.locked
+                                        Behavior on opacity {
+                                            NumberAnimation { duration: Theme.fast }
+                                        }
+                                    }
+
                                     MouseArea {
                                         id: clipMouse
                                         anchors.fill: parent
+                                        anchors.leftMargin: 6
+                                        anchors.rightMargin: 6
                                         hoverEnabled: true
                                         enabled: !track.modelData.locked
-                                        onClicked: timeline.session.selectedClip
+                                        cursorShape: pressed
+                                            ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                        // where in the clip the grab started
+                                        property real grabOffset: 0
+
+                                        onPressed: (mouse) => {
+                                            timeline.session.selectedClip = clip.modelData.label
+                                            grabOffset = (mouse.x + 6) / timeline.laneWidth
+                                        }
+                                        onPositionChanged: (mouse) => {
+                                            if (!pressed)
+                                                return
+                                            const pointer = (clip.x + mouse.x + 6)
+                                                / timeline.laneWidth
+                                            timeline.session.moveClip(
+                                                track.index, clip.index,
+                                                pointer - grabOffset,
+                                                timeline.snapTolerance)
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: inHandle
+                                        anchors.left: parent.left
+                                        anchors.top: parent.top
+                                        anchors.bottom: parent.bottom
+                                        width: 6
+                                        hoverEnabled: true
+                                        enabled: !track.modelData.locked
+                                        cursorShape: Qt.SizeHorCursor
+                                        onPressed: timeline.session.selectedClip
                                             = clip.modelData.label
+                                        onPositionChanged: (mouse) => {
+                                            if (!pressed)
+                                                return
+                                            timeline.session.trimClip(
+                                                track.index, clip.index, "in",
+                                                (clip.x + mouse.x) / timeline.laneWidth,
+                                                timeline.snapTolerance)
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: outHandle
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.bottom: parent.bottom
+                                        width: 6
+                                        hoverEnabled: true
+                                        enabled: !track.modelData.locked
+                                        cursorShape: Qt.SizeHorCursor
+                                        onPressed: timeline.session.selectedClip
+                                            = clip.modelData.label
+                                        onPositionChanged: (mouse) => {
+                                            if (!pressed)
+                                                return
+                                            timeline.session.trimClip(
+                                                track.index, clip.index, "out",
+                                                (clip.x + clip.width + mouse.x)
+                                                    / timeline.laneWidth,
+                                                timeline.snapTolerance)
+                                        }
                                     }
                                 }
                             }
