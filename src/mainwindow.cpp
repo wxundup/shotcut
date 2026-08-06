@@ -94,6 +94,7 @@
 #include "widgets/video4linuxwidget.h"
 #include <QInputDialog>
 #include <QQmlComponent>
+#include <QQmlEngine>
 #ifdef Q_OS_WIN
 #include "windowstools.h"
 #endif
