@@ -86,6 +86,11 @@ ApplicationWindow {
         onActivated: sessionModel.playing = !sessionModel.playing
     }
 
+    Shortcut {
+        sequence: "Esc"
+        onActivated: sessionModel.selectedClip = ""
+    }
+
     // ---- layout ----------------------------------------------------------------
     ColumnLayout {
         anchors.fill: parent

@@ -48,7 +48,9 @@ if (Get-Command clang-format -ErrorAction SilentlyContinue) {
 Write-Host '== collab relay tests =='
 Push-Location "$repo\collab"
 try {
-    cargo test --quiet
+    # cargo writes progress to stderr; merge it so a truncated pipeline
+    # cannot turn clean output into a failure
+    cargo test --quiet 2>&1 | ForEach-Object { "$_" }
     if ($LASTEXITCODE -ne 0) { $failed += 'cargo test' }
 } finally {
     Pop-Location

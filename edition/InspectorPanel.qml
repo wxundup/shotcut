@@ -12,6 +12,8 @@ Rectangle {
     id: inspector
 
     required property var session
+    readonly property bool hasSelection: session.selectedClip !== ""
+    signal resetRequested()
 
     color: Theme.panel
 
@@ -43,6 +45,8 @@ Rectangle {
                 text: "Reset"
                 tip: "Reset all properties"
                 iconSource: Qt.resolvedUrl("icons/reset.svg")
+                enabled: inspector.hasSelection
+                onClicked: inspector.resetRequested()
             }
         }
 
@@ -60,11 +64,15 @@ Rectangle {
             Layout.fillWidth: true
             items: ["Video", "Audio", "Speed"]
             currentIndex: 0
+            enabled: inspector.hasSelection
+            opacity: enabled ? 1.0 : 0.4
         }
 
         ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            enabled: inspector.hasSelection
+            opacity: enabled ? 1.0 : 0.4
 
             ColumnLayout {
                 width: parent.width - Theme.s
@@ -84,8 +92,18 @@ Rectangle {
                     ColumnLayout {
                         id: propRow
                         required property var modelData
+                        property bool keyframed: false
                         Layout.fillWidth: true
                         spacing: Theme.xxs
+
+                        // reset returns every row to its default
+                        Connections {
+                            target: inspector
+                            function onResetRequested() {
+                                propSlider.value = propRow.modelData.value
+                                propRow.keyframed = false
+                            }
+                        }
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -96,7 +114,7 @@ Rectangle {
                                 Layout.fillWidth: true
                             }
                             Text {
-                                text: propRow.modelData.value.toFixed(2)
+                                text: propSlider.value.toFixed(2)
                                 font: Theme.timecodeFont
                                 color: Theme.text
                             }
@@ -107,6 +125,7 @@ Rectangle {
                             spacing: Theme.s
 
                             Slider {
+                                id: propSlider
                                 Layout.fillWidth: true
                                 from: 0; to: 2
                                 value: propRow.modelData.value
@@ -117,7 +136,14 @@ Rectangle {
                                 implicitHeight: 20
                                 text: "Keyframe"
                                 tip: "Toggle keyframe"
-                                contentItem: Text { text: "◇"; font: Theme.bodyFont; color: Theme.textTertiary; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                onClicked: propRow.keyframed = !propRow.keyframed
+                                contentItem: Text {
+                                    text: propRow.keyframed ? "◆" : "◇"
+                                    font: Theme.bodyFont
+                                    color: propRow.keyframed ? Theme.accent : Theme.textTertiary
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
                         }
                     }
