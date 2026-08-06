@@ -1,5 +1,6 @@
 #include "collabsession.h"
 
+#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -29,18 +30,22 @@ CollabSession::CollabSession(MainWindow *win)
                 m_win->showStatusMessage(tr("Invite code: %1").arg(code), 30);
             });
     connect(&m_client, &CollabClient::snapshotReceived, this, [this](const QString &xml) {
-        if (m_applying)
-            return;
+        const QByteArray utf8 = xml.toUtf8();
+        // Remember what we were handed: when opening it churns the undo stack,
+        // the resulting broadcast would echo the same document back to the peer
+        // that sent it, and ping-pong from there.
+        m_lastAppliedDigest = QCryptographicHash::hash(utf8, QCryptographicHash::Sha1);
+
         QTemporaryFile tmp(QDir::temp().filePath("editogether-XXXXXX.mlt"));
         tmp.setAutoRemove(false);
         if (!tmp.open())
             return;
-        tmp.write(xml.toUtf8());
+        const QString path = tmp.fileName();
+        const bool written = tmp.write(utf8) == utf8.size();
         tmp.close();
-        m_applying = true;
-        m_win->open(tmp.fileName());
-        m_applying = false;
-        QFile::remove(tmp.fileName());
+        if (written)
+            m_win->open(path);
+        QFile::remove(path);
     });
 }
 
@@ -62,7 +67,7 @@ void CollabSession::leave()
 
 void CollabSession::localChanged()
 {
-    if (!m_applying && m_client.isConnected())
+    if (m_client.isConnected())
         m_debounce->start();
 }
 
@@ -71,11 +76,23 @@ void CollabSession::broadcastSnapshot()
     QTemporaryFile tmp(QDir::temp().filePath("editogether-XXXXXX.mlt"));
     if (!tmp.open())
         return;
-    tmp.close();
-    if (m_win->saveXML(tmp.fileName(), false)) {
-        QFile f(tmp.fileName());
+    const QString path = tmp.fileName();
+    tmp.close(); // saveXML reopens the path itself
+
+    QByteArray xml;
+    if (m_win->saveXML(path, false)) {
+        QFile f(path);
         if (f.open(QIODevice::ReadOnly))
-            m_client.sendSnapshot(QString::fromUtf8(f.readAll()));
+            xml = f.readAll();
     }
-    tmp.remove();
+    QFile::remove(path);
+    if (xml.isEmpty())
+        return;
+
+    // Don't echo a document we just applied from a peer.
+    const QByteArray digest = QCryptographicHash::hash(xml, QCryptographicHash::Sha1);
+    if (digest == m_lastAppliedDigest)
+        return;
+    m_lastAppliedDigest = digest;
+    m_client.sendSnapshot(QString::fromUtf8(xml));
 }

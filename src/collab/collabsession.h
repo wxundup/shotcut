@@ -5,6 +5,7 @@
 #ifndef COLLABSESSION_H
 #define COLLABSESSION_H
 
+#include <QByteArray>
 #include <QObject>
 #include <QString>
 #include <QUrl>
@@ -35,7 +36,7 @@ private:
     CollabClient m_client;
     QTimer *m_debounce;
     QString m_roomCode;
-    bool m_applying = false;
+    QByteArray m_lastAppliedDigest;
 };
 
 #endif // COLLABSESSION_H
