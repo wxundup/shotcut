@@ -265,7 +265,7 @@ Rectangle {
                                         anchors.margins: 1
                                         visible: clip.modelData.kind === "video"
                                         frames: timeline.session.thumbnailsFor(
-                                            clip.modelData.label)
+                                            clip.modelData.media)
                                     }
 
                                     Waveform {
@@ -277,7 +277,7 @@ Rectangle {
                                             ? 0.25 : track.modelData.volume
                                         peaks: clip.modelData.kind === "audio"
                                             ? timeline.session.peaksFor(
-                                                clip.modelData.seed,
+                                                clip.modelData.media,
                                                 Math.max(8, Math.floor(clip.width / 3)))
                                             : []
                                     }

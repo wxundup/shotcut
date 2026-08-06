@@ -19,6 +19,12 @@ ApplicationWindow {
     title: "Untitled Project — EdiTogether"
     color: Theme.window
 
+    // Real media: durations, codecs, decoded thumbnails and PCM peaks read
+    // from media/index.json.
+    MediaLibrary {
+        id: mediaLibrary
+    }
+
     // Switch workspaces from outside the toolbar (menu, shortcut, host app).
     function openWorkspace(name) {
         if (sessionModel.workspaces.indexOf(name) !== -1)
@@ -184,50 +190,87 @@ ApplicationWindow {
             ]},
             { name: "V1", audio: false, muted: false, soloed: false, locked: false,
               volume: 1.0, level: 0.0, clips: [
-                { label: "A003_Take2", start: 0.00, width: 0.22, kind: "video" },
-                { label: "A007_Take1", start: 0.24, width: 0.30, kind: "video" },
-                { label: "B012_Wide",  start: 0.56, width: 0.26, kind: "video" },
-                { label: "Drone_04",   start: 0.84, width: 0.14, kind: "video" },
+                { label: "A003_Take2", start: 0.00, width: 0.22, kind: "video",
+                  media: "A003_Take2" },
+                { label: "A007_Take1", start: 0.24, width: 0.30, kind: "video",
+                  media: "A007_Take1" },
+                { label: "B012_Wide",  start: 0.56, width: 0.26, kind: "video",
+                  media: "B012_Wide" },
+                { label: "Drone_04",   start: 0.84, width: 0.14, kind: "video",
+                  media: "Drone_04" },
             ]},
             { name: "A1", audio: true, muted: false, soloed: false, locked: false,
               volume: 0.82, level: 0.0, clips: [
-                { label: "VO_Final",   start: 0.04, width: 0.40, kind: "audio", seed: 7 },
-                { label: "VO_Final_2", start: 0.48, width: 0.34, kind: "audio", seed: 23 },
+                { label: "VO_Final",   start: 0.04, width: 0.40, kind: "audio",
+                  media: "VO_Final" },
+                { label: "VO_Final_2", start: 0.48, width: 0.34, kind: "audio",
+                  media: "VO_Final" },
             ]},
             { name: "A2", audio: true, muted: false, soloed: false, locked: false,
               volume: 0.55, level: 0.0, clips: [
-                { label: "Score_Loop", start: 0.00, width: 0.98, kind: "audio", seed: 41 },
+                { label: "Score_Loop", start: 0.00, width: 0.98, kind: "audio",
+                  media: "Score_Loop" },
             ]},
         ]
 
-        // Stand-in peaks: stable for a given seed so the drawing never
-        // flickers between frames. Replaced by real analysis later.
-        function peaksFor(seed, count) {
+        // Peaks decoded from the file's PCM, resampled to the requested
+        // number of buckets. Empty when the media has no analysis.
+        //
+        // Peaks are normalised against the file's own loudest sample so a
+        // quiet recording is still readable — the shape is the real signal,
+        // the scale is relative to that file.
+        function peaksFor(name, count) {
+            const raw = mediaLibrary.peaksFor(name)
+            if (!raw || raw.length === 0)
+                return []
+            let loudest = 0
+            for (var n = 0; n < raw.length; n++)
+                loudest = Math.max(loudest, raw[n])
+            const scale = loudest > 0.001 ? 1 / loudest : 1
+            const source = raw.map(function (p) { return Math.min(1, p * scale) })
+            if (count >= source.length)
+                return source
+            // Downsample by taking the loudest peak in each bucket, so a
+            // transient never disappears at low zoom.
             const out = []
-            let x = seed * 9301 + 49297
+            const step = source.length / count
             for (var i = 0; i < count; i++) {
-                x = (x * 9301 + 49297) % 233280
-                const noise = x / 233280
-                const envelope = 0.35 + 0.45 * Math.abs(Math.sin(i / 7 + seed))
-                out.push(Math.min(1, envelope * (0.55 + 0.75 * noise)))
+                let peak = 0
+                const from = Math.floor(i * step)
+                const to = Math.min(source.length, Math.floor((i + 1) * step))
+                for (var j = from; j < to; j++)
+                    peak = Math.max(peak, source[j])
+                out.push(peak)
             }
             return out
         }
 
-        // Stand-in thumbnails until real decode is wired in. Each clip gets a
-        // stable set so the strip does not shuffle on every repaint.
-        readonly property var thumbnailSets: ({
-            "A003_Take2": ["thumbs/take2-a.svg", "thumbs/take2-b.svg", "thumbs/take2-c.svg"],
-            "A007_Take1": ["thumbs/take1-a.svg", "thumbs/take1-b.svg", "thumbs/take1-c.svg"],
-            "B012_Wide":  ["thumbs/wide-a.svg", "thumbs/wide-b.svg"],
-            "Drone_04":   ["thumbs/drone-a.svg", "thumbs/drone-b.svg"],
-        })
+        // Everything the media index knows, for panels that list it.
+        readonly property var mediaItems: mediaLibrary.items
 
-        function thumbnailsFor(label) {
-            const set = thumbnailSets[label]
-            if (!set)
-                return []
-            return set.map(function (p) { return Qt.resolvedUrl(p) })
+        // Frames decoded from the file at even intervals.
+        function thumbnailsFor(name) {
+            return mediaLibrary.thumbsFor(name)
+        }
+
+        // The clip under the playhead on the topmost video track, which is
+        // what the program monitor should be decoding.
+        readonly property var programClip: {
+            for (var t = 0; t < tracks.length; t++) {
+                if (tracks[t].audio)
+                    continue
+                const clips = tracks[t].clips
+                for (var c = 0; c < clips.length; c++) {
+                    const clip = clips[c]
+                    if (playhead >= clip.start && playhead < clip.start + clip.width)
+                        return clip
+                }
+            }
+            return null
+        }
+
+        function sourceFor(name) {
+            return mediaLibrary.sourceFor(name)
         }
 
         // ---- clip editing ---------------------------------------------------

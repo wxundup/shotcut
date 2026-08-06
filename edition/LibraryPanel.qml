@@ -17,16 +17,18 @@ Rectangle {
     property int kindIndex: 0
     property bool listView: false
 
-    readonly property var allItems: [
-        { label: "A003_Take2.mp4", dur: "00:42", kind: "video", tint: "#3a5f8a", thumb: "thumbs/take2-a.svg" },
-        { label: "A007_Take1.mp4", dur: "01:07", kind: "video", tint: "#3a5f8a", thumb: "thumbs/take1-a.svg" },
-        { label: "B012_Wide.mp4",  dur: "00:18", kind: "video", tint: "#41546e", thumb: "thumbs/wide-a.svg" },
-        { label: "Drone_04.mp4",   dur: "00:33", kind: "video", tint: "#2f5d50", thumb: "thumbs/drone-a.svg" },
-        { label: "VO_Final.wav",   dur: "02:14", kind: "audio", tint: "#33604a", thumb: "" },
-        { label: "Score_Loop.wav", dur: "03:01", kind: "audio", tint: "#2e6a68", thumb: "" },
-        { label: "Title Intro",    dur: "00:04", kind: "title", tint: "#4a4470", thumb: "" },
-        { label: "Lower Third",    dur: "00:06", kind: "title", tint: "#4a4470", thumb: "" },
-    ]
+    // Real media, read from media/index.json (durations, codecs, decoded
+    // thumbnails and PCM peaks). Empty if the index has not been built.
+    readonly property var allItems: session.mediaItems.map(function (m) {
+        return {
+            label: m.label,
+            name: m.name,
+            dur: session.timecode(m.duration).substring(3, 8),
+            kind: m.kind,
+            tint: m.kind === "audio" ? "#33604a" : "#3a5f8a",
+            thumb: m.thumbs.length > 0 ? m.thumbs[0] : "",
+        }
+    })
 
     readonly property var kinds: ["all", "video", "audio", "title"]
 
@@ -164,7 +166,7 @@ Rectangle {
                         Image {
                             anchors.fill: parent
                             source: mediaItem.modelData.thumb === ""
-                                ? "" : Qt.resolvedUrl(mediaItem.modelData.thumb)
+                                ? "" : mediaItem.modelData.thumb
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             visible: mediaItem.modelData.thumb !== ""
@@ -176,7 +178,7 @@ Rectangle {
                             anchors.margins: Theme.xs
                             visible: mediaItem.modelData.kind === "audio"
                             peaks: library.session.peaksFor(
-                                mediaItem.modelData.label.length,
+                                mediaItem.modelData.name,
                                 Math.max(8, Math.floor(width / 3)))
                         }
 
@@ -263,7 +265,7 @@ Rectangle {
                         Image {
                             anchors.fill: parent
                             source: row.modelData.thumb === ""
-                                ? "" : Qt.resolvedUrl(row.modelData.thumb)
+                                ? "" : row.modelData.thumb
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             visible: row.modelData.thumb !== ""
