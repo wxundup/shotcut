@@ -16,13 +16,17 @@ Rectangle {
     property int presetIndex: 0
 
     readonly property var presets: [
-        { name: "H.264 · 1080p",  container: "MP4",  vcodec: "H.264 High",  acodec: "AAC 320 kb/s",
+        { name: "H.264 · 1080p", key: "h264-1080p", container: "MP4",
+          vcodec: "H.264 High", acodec: "AAC 320 kb/s",
           rate: "29.97", size: "1920 × 1080", bitrate: "24 Mb/s" },
-        { name: "H.264 · 2160p",  container: "MP4",  vcodec: "H.264 High",  acodec: "AAC 320 kb/s",
+        { name: "H.264 · 2160p", key: "h264-2160p", container: "MP4",
+          vcodec: "H.264 High", acodec: "AAC 320 kb/s",
           rate: "29.97", size: "3840 × 2160", bitrate: "60 Mb/s" },
-        { name: "ProRes 422 HQ",  container: "MOV",  vcodec: "ProRes 422 HQ", acodec: "PCM 24-bit",
+        { name: "ProRes 422 HQ", key: "prores-422hq", container: "MOV",
+          vcodec: "ProRes 422 HQ", acodec: "PCM 24-bit",
           rate: "29.97", size: "1920 × 1080", bitrate: "220 Mb/s" },
-        { name: "Vertical · 1080×1920", container: "MP4", vcodec: "H.264 High", acodec: "AAC 256 kb/s",
+        { name: "Vertical · 1080×1920", key: "vertical-1080x1920", container: "MP4",
+          vcodec: "H.264 High", acodec: "AAC 256 kb/s",
           rate: "30", size: "1080 × 1920", bitrate: "18 Mb/s" },
     ]
 
@@ -181,6 +185,23 @@ Rectangle {
                     }
 
                     Item { Layout.fillWidth: true }
+                }
+
+                Text {
+                    text: qsTr("Rendered by export/render-sequence.ps1 with FFmpeg")
+                    font: Theme.captionFont
+                    color: Theme.textTertiary
+                    Layout.fillWidth: true
+                    Layout.topMargin: Theme.xs
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    text: "-Preset " + deliver.preset.key
+                    font: Theme.timecodeFont
+                    color: Theme.textTertiary
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
 
                 Item { Layout.fillHeight: true }
