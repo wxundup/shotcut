@@ -274,14 +274,32 @@ ApplicationWindow {
                   media: "Drone_04" },
             ]},
             { name: "A1", audio: true, muted: false, soloed: false, locked: false,
-              volume: 0.82, level: 0.0, clips: [
+              volume: 0.82, level: 0.0,
+              dsp: { eqOn: true,
+                     bands: [
+                        { type: "lowshelf",  freq: 110,  gain: -4.0, q: 0.7, on: true },
+                        { type: "peaking",   freq: 2600, gain:  3.5, q: 1.2, on: true },
+                        { type: "highshelf", freq: 9000, gain:  2.0, q: 0.7, on: true },
+                     ],
+                     compOn: true, threshold: -20, ratio: 3.5, attack: 12, release: 180,
+                     limitOn: true, ceiling: -1.0, reduction: 0 },
+              clips: [
                 { label: "VO_Final",   start: 0.04, width: 0.40, kind: "audio",
                   media: "VO_Final" },
                 { label: "VO_Final_2", start: 0.48, width: 0.34, kind: "audio",
                   media: "VO_Final" },
             ]},
             { name: "A2", audio: true, muted: false, soloed: false, locked: false,
-              volume: 0.55, level: 0.0, clips: [
+              volume: 0.55, level: 0.0,
+              dsp: { eqOn: true,
+                     bands: [
+                        { type: "lowshelf",  freq: 90,    gain:  2.0, q: 0.7, on: true },
+                        { type: "peaking",   freq: 500,   gain: -2.5, q: 1.4, on: true },
+                        { type: "highshelf", freq: 10000, gain:  1.0, q: 0.7, on: true },
+                     ],
+                     compOn: false, threshold: -18, ratio: 4, attack: 20, release: 250,
+                     limitOn: true, ceiling: -1.5, reduction: 0 },
+              clips: [
                 { label: "Score_Loop", start: 0.00, width: 0.98, kind: "audio",
                   media: "Score_Loop" },
             ]},
@@ -345,6 +363,52 @@ ApplicationWindow {
 
         function sourceFor(name) {
             return mediaLibrary.sourceFor(name)
+        }
+
+        // ---- channel processing ---------------------------------------------
+        // Defaults are a working starting point rather than a bypass: a gentle
+        // 4:1 at -18 dB and a ceiling just under full scale.
+        function defaultDsp() {
+            return {
+                eqOn: false,
+                bands: [
+                    { type: "lowshelf",  freq: 120,   gain: 0, q: 0.7, on: true },
+                    { type: "peaking",   freq: 1000,  gain: 0, q: 1.0, on: true },
+                    { type: "highshelf", freq: 8000,  gain: 0, q: 0.7, on: true },
+                ],
+                compOn: false,
+                threshold: -18,
+                ratio: 4,
+                attack: 20,
+                release: 250,
+                limitOn: false,
+                ceiling: -1,
+                reduction: 0,
+            }
+        }
+
+        function setDsp(trackIndex, key, value) {
+            const next = tracks.slice()
+            const track = Object.assign({}, next[trackIndex])
+            track.dsp = Object.assign({}, track.dsp || defaultDsp())
+            track.dsp[key] = value
+            next[trackIndex] = track
+            tracks = next
+        }
+
+        function setEqBand(trackIndex, bandIndex, freq, gain) {
+            const next = tracks.slice()
+            const track = Object.assign({}, next[trackIndex])
+            const dsp = Object.assign({}, track.dsp || defaultDsp())
+            const bands = dsp.bands.slice()
+            bands[bandIndex] = Object.assign({}, bands[bandIndex], {
+                freq: Math.round(freq),
+                gain: Math.round(gain * 10) / 10,
+            })
+            dsp.bands = bands
+            track.dsp = dsp
+            next[trackIndex] = track
+            tracks = next
         }
 
         // ---- clip editing ---------------------------------------------------

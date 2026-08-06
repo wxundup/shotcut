@@ -16,6 +16,16 @@ Rectangle {
     readonly property var audioTracks:
         session.tracks.filter(function (t) { return t.audio })
 
+    // The channel whose processing is on show; the first audio track by
+    // default, or whichever strip was clicked.
+    property int focusedTrack: {
+        for (var i = 0; i < session.tracks.length; i++) {
+            if (session.tracks[i].audio)
+                return i
+        }
+        return -1
+    }
+
     color: Theme.window
 
     ColumnLayout {
@@ -78,6 +88,12 @@ Rectangle {
                     onSoloToggled:
                         audioPanel.session.setTrackProperty(
                             channel.index, "soloed", !channel.modelData.soloed)
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        onClicked: audioPanel.focusedTrack = channel.index
+                    }
                 }
             }
 
@@ -100,7 +116,15 @@ Rectangle {
                 onGainRequested: (value) => audioPanel.session.masterGain = value
             }
 
-            Item { Layout.fillWidth: true }
+            // Processing for the channel being worked on.
+            DspRack {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumWidth: 380
+                visible: audioPanel.focusedTrack >= 0
+                session: audioPanel.session
+                trackIndex: audioPanel.focusedTrack
+            }
         }
 
         Item { Layout.fillHeight: true }

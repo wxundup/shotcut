@@ -314,16 +314,54 @@ $outFormat = if ($p.depth -ge 10) { 'yuv420p10le' } else { 'yuv420p' }
 [void]$filter.Append("dither=error_diffusion,")
 [void]$filter.Append("format=$outFormat[vout];")
 
-# Audio: trim, delay to position, apply the track fader, then mix.
+# Audio: trim, delay to position, run the channel's processing, apply the
+# fader, then mix. The EQ bands and dynamics are the same values the mixer
+# shows, so what is heard in the editor is what is written.
 $audioLabels = @()
 $n = 0
 foreach ($a in $audioOps) {
     $label = "a$n"
     $delayMs = [int]([Math]::Round($a.start * 1000))
     $gain = [double]$a.track.volume
+    $dsp = $a.track.dsp
+
     [void]$filter.Append("[$($a.index):a]")
     [void]$filter.Append("atrim=duration=$($a.length),asetpts=PTS-STARTPTS,")
     [void]$filter.Append("adelay=${delayMs}|${delayMs},")
+
+    if ($null -ne $dsp) {
+        # Parametric EQ: one biquad per band, skipping any at unity.
+        if ($dsp.eqOn -and $null -ne $dsp.bands) {
+            foreach ($band in $dsp.bands) {
+                if ($band.on -eq $false) { continue }
+                if ([Math]::Abs([double]$band.gain) -lt 0.05) { continue }
+                $f = [int]$band.freq
+                $g = [Math]::Round([double]$band.gain, 2)
+                $q = [Math]::Round([double]$band.q, 2)
+                switch ($band.type) {
+                    'lowshelf'  { [void]$filter.Append("bass=g=${g}:f=${f}:w=${q}:width_type=q,") }
+                    'highshelf' { [void]$filter.Append("treble=g=${g}:f=${f}:w=${q}:width_type=q,") }
+                    default     { [void]$filter.Append("equalizer=f=${f}:g=${g}:w=${q}:width_type=q,") }
+                }
+            }
+        }
+
+        if ($dsp.compOn) {
+            # acompressor takes a linear threshold and seconds.
+            $thresholdLinear = [Math]::Round([Math]::Pow(10, [double]$dsp.threshold / 20), 6)
+            $ratio = [Math]::Round([double]$dsp.ratio, 2)
+            $attack = [Math]::Round([double]$dsp.attack, 2)
+            $release = [Math]::Round([double]$dsp.release, 2)
+            [void]$filter.Append("acompressor=threshold=${thresholdLinear}:")
+            [void]$filter.Append("ratio=${ratio}:attack=${attack}:release=${release},")
+        }
+
+        if ($dsp.limitOn) {
+            $ceilingLinear = [Math]::Round([Math]::Pow(10, [double]$dsp.ceiling / 20), 6)
+            [void]$filter.Append("alimiter=limit=${ceilingLinear}:level=disabled,")
+        }
+    }
+
     [void]$filter.Append("volume=$gain[$label];")
     $audioLabels += "[$label]"
     $n++

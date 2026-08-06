@@ -17,3 +17,5 @@ CurveEditor 1.0 CurveEditor.qml
 ChannelFader 1.0 ChannelFader.qml
 KeyframeStrip 1.0 KeyframeStrip.qml
 FrameSampler 1.0 FrameSampler.qml
+EqCurve 1.0 EqCurve.qml
+GainReduction 1.0 GainReduction.qml
