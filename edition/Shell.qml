@@ -91,6 +91,87 @@ ApplicationWindow {
             return out
         }
 
+        // ---- effects -------------------------------------------------------
+        // The stack applied to the selected clip. Parameters carry their own
+        // keyframes; an empty list means the value is constant.
+        property var effects: [
+            { name: qsTr("Transform"), on: true, params: [
+                { name: qsTr("Position X"), value: 0.50, min: 0, max: 1, keyframes: [] },
+                { name: qsTr("Position Y"), value: 0.50, min: 0, max: 1, keyframes: [] },
+                { name: qsTr("Scale"),      value: 1.00, min: 0, max: 4, keyframes: [] },
+                { name: qsTr("Rotation"),   value: 0.00, min: -180, max: 180, keyframes: [] },
+            ]},
+            { name: qsTr("Opacity"), on: true, params: [
+                { name: qsTr("Level"), value: 1.00, min: 0, max: 1,
+                  keyframes: [{ time: 0.0, value: 0.0 }, { time: 0.12, value: 1.0 }] },
+            ]},
+        ]
+
+        function withEffects(fn) {
+            const next = effects.map(function (e) {
+                return Object.assign({}, e, {
+                    params: e.params.map(function (p) { return Object.assign({}, p) })
+                })
+            })
+            fn(next)
+            effects = next
+        }
+
+        function addEffect(name) {
+            if (selectedClip === "")
+                return
+            const defaults = {
+                "Gaussian Blur": [{ name: qsTr("Radius"), value: 4, min: 0, max: 50 }],
+                "Saturation":    [{ name: qsTr("Level"), value: 1, min: 0, max: 3 }],
+                "Sharpen":       [{ name: qsTr("Amount"), value: 0.5, min: 0, max: 2 }],
+                "Gain":          [{ name: qsTr("Gain"), value: 1, min: 0, max: 4 }],
+            }
+            const params = (defaults[name] || [{ name: qsTr("Amount"), value: 1, min: 0, max: 2 }])
+                .map(function (p) { return Object.assign({}, p, { keyframes: [] }) })
+            effects = effects.concat([{ name: name, on: true, params: params }])
+        }
+
+        function removeEffect(index) {
+            const next = effects.slice()
+            next.splice(index, 1)
+            effects = next
+        }
+
+        function toggleEffect(index) {
+            withEffects(function (next) { next[index].on = !next[index].on })
+        }
+
+        function setParam(effectIndex, paramIndex, value) {
+            withEffects(function (next) { next[effectIndex].params[paramIndex].value = value })
+        }
+
+        function addKeyframe(effectIndex, paramIndex) {
+            withEffects(function (next) {
+                const p = next[effectIndex].params[paramIndex]
+                const keys = p.keyframes.slice()
+                    .filter(function (k) { return Math.abs(k.time - playhead) > 0.005 })
+                keys.push({ time: playhead, value: p.value })
+                keys.sort(function (a, b) { return a.time - b.time })
+                p.keyframes = keys
+            })
+        }
+
+        function setKeyframes(effectIndex, paramIndex, keyframes) {
+            withEffects(function (next) {
+                next[effectIndex].params[paramIndex].keyframes = keyframes
+            })
+        }
+
+        function resetEffects() {
+            withEffects(function (next) {
+                for (var i = 0; i < next.length; i++) {
+                    next[i].on = true
+                    for (var j = 0; j < next[i].params.length; j++)
+                        next[i].params[j].keyframes = []
+                }
+            })
+        }
+
         // ---- delivery ------------------------------------------------------
         property var exportQueue: []
 
@@ -363,6 +444,14 @@ ApplicationWindow {
                 Layout.preferredWidth: 300
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Edit"
+                session: sessionModel
+            }
+
+            EffectsPanel {
+                Layout.preferredWidth: 236
+                Layout.fillHeight: true
+                visible: sessionModel.workspace === "Edit"
+                    && root.width >= 1400
                 session: sessionModel
             }
         }

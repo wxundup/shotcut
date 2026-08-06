@@ -1,5 +1,6 @@
 /*
- * Inspector: properties of the selected clip.
+ * Inspector: the effect stack applied to the selected clip, each parameter
+ * with a value and a keyframe lane.
  */
 pragma ComponentBehavior: Bound
 import QtQuick
@@ -13,7 +14,6 @@ Rectangle {
 
     required property var session
     readonly property bool hasSelection: session.selectedClip !== ""
-    signal resetRequested()
 
     color: Theme.panel
 
@@ -35,37 +35,49 @@ Rectangle {
             spacing: Theme.s
 
             Text {
-                text: "Inspector"
+                text: qsTr("Effect Controls")
                 font: Theme.titleFont
                 color: Theme.text
                 Layout.fillWidth: true
             }
 
             ToolButton {
-                text: "Reset"
-                tip: "Reset all properties"
+                text: qsTr("Reset")
+                tip: qsTr("Reset every effect on this clip")
                 iconSource: Qt.resolvedUrl("icons/reset.svg")
                 enabled: inspector.hasSelection
-                onClicked: inspector.resetRequested()
+                onClicked: inspector.session.resetEffects()
             }
         }
 
         Text {
-            text: inspector.session.selectedClip !== ""
+            text: inspector.hasSelection
                 ? inspector.session.selectedClip : qsTr("No selection")
             font: Theme.calloutFont
-            color: inspector.session.selectedClip !== ""
-                ? Theme.textSecondary : Theme.textTertiary
+            color: inspector.hasSelection ? Theme.textSecondary : Theme.textTertiary
             elide: Text.ElideMiddle
             Layout.fillWidth: true
         }
 
-        Segmented {
+        // Time ruler for the keyframe lanes, so the diamonds have a scale.
+        RowLayout {
             Layout.fillWidth: true
-            items: ["Video", "Audio", "Speed"]
-            currentIndex: 0
-            enabled: inspector.hasSelection
-            opacity: enabled ? 1.0 : 0.4
+            visible: inspector.hasSelection
+            spacing: Theme.s
+
+            Text {
+                text: qsTr("Parameter")
+                font: Theme.captionFont
+                color: Theme.textTertiary
+                Layout.preferredWidth: 96
+            }
+
+            Text {
+                text: qsTr("Keyframes")
+                font: Theme.captionFont
+                color: Theme.textTertiary
+                Layout.fillWidth: true
+            }
         }
 
         ScrollView {
@@ -73,85 +85,159 @@ Rectangle {
             Layout.fillHeight: true
             enabled: inspector.hasSelection
             opacity: enabled ? 1.0 : 0.4
+            clip: true
 
             ColumnLayout {
-                width: parent.width - Theme.s
+                width: inspector.width - Theme.m * 2 - Theme.s
                 spacing: Theme.m
 
-                property var rows: [
-                    { label: "Position X", value: 0.5 },
-                    { label: "Position Y", value: 0.5 },
-                    { label: "Scale",      value: 1.0 },
-                    { label: "Rotation",   value: 0.0 },
-                    { label: "Opacity",    value: 1.0 },
-                ]
-
                 Repeater {
-                    model: parent.rows
+                    model: inspector.session.effects
 
                     ColumnLayout {
-                        id: propRow
+                        id: effectBlock
                         required property var modelData
-                        property bool keyframed: false
+                        required property int index
                         Layout.fillWidth: true
-                        spacing: Theme.xxs
+                        spacing: Theme.xs
 
-                        // reset returns every row to its default
-                        Connections {
-                            target: inspector
-                            function onResetRequested() {
-                                propSlider.value = propRow.modelData.value
-                                propRow.keyframed = false
-                            }
-                        }
-
+                        // effect header
                         RowLayout {
                             Layout.fillWidth: true
+                            spacing: Theme.xs
+
+                            Rectangle {
+                                Layout.preferredWidth: 14
+                                Layout.preferredHeight: 14
+                                radius: 3
+                                color: effectBlock.modelData.on
+                                    ? Theme.accent : "transparent"
+                                border.width: effectBlock.modelData.on ? 0 : 1
+                                border.color: Theme.border
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✓"
+                                    font: Theme.captionFont
+                                    color: Theme.textOnAccent
+                                    visible: effectBlock.modelData.on
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: inspector.session.toggleEffect(effectBlock.index)
+                                }
+                            }
+
                             Text {
-                                text: propRow.modelData.label
+                                text: effectBlock.modelData.name
                                 font: Theme.bodyFont
-                                color: Theme.textSecondary
+                                color: effectBlock.modelData.on
+                                    ? Theme.text : Theme.textTertiary
                                 Layout.fillWidth: true
-                            }
-                            Text {
-                                text: propSlider.value.toFixed(2)
-                                font: Theme.timecodeFont
-                                color: Theme.text
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.s
-
-                            Slider {
-                                id: propSlider
-                                Layout.fillWidth: true
-                                from: 0; to: 2
-                                value: propRow.modelData.value
+                                elide: Text.ElideRight
                             }
 
                             ToolButton {
-                                implicitWidth: 20
-                                implicitHeight: 20
-                                text: "Keyframe"
-                                tip: "Toggle keyframe"
-                                onClicked: propRow.keyframed = !propRow.keyframed
+                                implicitWidth: 18
+                                implicitHeight: 18
+                                text: qsTr("Remove")
+                                tip: qsTr("Remove effect")
+                                onClicked: inspector.session.removeEffect(effectBlock.index)
                                 contentItem: Text {
-                                    text: propRow.keyframed ? "◆" : "◇"
-                                    font: Theme.bodyFont
-                                    color: propRow.keyframed ? Theme.accent : Theme.textTertiary
+                                    text: "×"
+                                    font: Theme.calloutFont
+                                    color: Theme.textTertiary
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                        }
+
+                        // parameters
+                        Repeater {
+                            model: effectBlock.modelData.params
+
+                            ColumnLayout {
+                                id: paramRow
+                                required property var modelData
+                                required property int index
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Theme.l
+                                spacing: 2
+                                enabled: effectBlock.modelData.on
+                                opacity: enabled ? 1 : 0.5
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+
+                                    Text {
+                                        text: paramRow.modelData.name
+                                        font: Theme.bodyFont
+                                        color: Theme.textSecondary
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Text {
+                                        text: paramRow.modelData.value.toFixed(2)
+                                        font: Theme.timecodeFont
+                                        color: Theme.text
+                                    }
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.s
+
+                                    Slider {
+                                        Layout.fillWidth: true
+                                        from: paramRow.modelData.min
+                                        to: paramRow.modelData.max
+                                        value: paramRow.modelData.value
+                                        onMoved: inspector.session.setParam(
+                                            effectBlock.index, paramRow.index, value)
+                                    }
+
+                                    ToolButton {
+                                        implicitWidth: 20
+                                        implicitHeight: 20
+                                        text: qsTr("Keyframe")
+                                        tip: qsTr("Add a keyframe at the playhead")
+                                        onClicked: inspector.session.addKeyframe(
+                                            effectBlock.index, paramRow.index)
+                                        contentItem: Text {
+                                            text: paramRow.modelData.keyframes.length > 0
+                                                ? "◆" : "◇"
+                                            font: Theme.bodyFont
+                                            color: paramRow.modelData.keyframes.length > 0
+                                                ? Theme.accent : Theme.textTertiary
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+                                }
+
+                                KeyframeStrip {
+                                    Layout.fillWidth: true
+                                    visible: paramRow.modelData.keyframes.length > 0
+                                    keyframes: paramRow.modelData.keyframes
+                                    playhead: inspector.session.playhead
+                                    onKeyframesEdited: (keyframes) =>
+                                        inspector.session.setKeyframes(
+                                            effectBlock.index, paramRow.index, keyframes)
                                 }
                             }
                         }
                     }
                 }
 
-                Switch {
-                    text: "Maintain aspect ratio"
-                    checked: true
+                Text {
+                    visible: inspector.session.effects.length === 0
+                    text: qsTr("No effects applied. Add one from the Effects panel.")
+                    font: Theme.captionFont
+                    color: Theme.textTertiary
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
                 }
             }
         }
