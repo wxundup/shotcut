@@ -11,3 +11,7 @@ Waveform 1.0 Waveform.qml
 Filmstrip 1.0 Filmstrip.qml
 TrackHead 1.0 TrackHead.qml
 LevelMeter 1.0 LevelMeter.qml
+ColorWheel 1.0 ColorWheel.qml
+Scope 1.0 Scope.qml
+CurveEditor 1.0 CurveEditor.qml
+ChannelFader 1.0 ChannelFader.qml

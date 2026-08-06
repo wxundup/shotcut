@@ -2,6 +2,7 @@
  * EdiTogether shell — target UX reference.
  * Run: qml -I <repo>/src/qml/modules Shell.qml
  */
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -17,6 +18,12 @@ ApplicationWindow {
     visible: true
     title: "Untitled Project — EdiTogether"
     color: Theme.window
+
+    // Switch workspaces from outside the toolbar (menu, shortcut, host app).
+    function openWorkspace(name) {
+        if (sessionModel.workspaces.indexOf(name) !== -1)
+            sessionModel.workspace = name
+    }
 
     // ---- mock session state -------------------------------------------------
     QtObject {
@@ -38,6 +45,62 @@ ApplicationWindow {
         property real masterRight: 0.0
         property real masterPeakLeft: 0.0
         property real masterPeakRight: 0.0
+        property real masterGain: 0.8
+
+        // ---- grading -------------------------------------------------------
+        property var grade: ({
+            lift:  { x: 0, y: 0, master: 0 },
+            gamma: { x: 0, y: 0, master: 0 },
+            gain:  { x: 0, y: 0, master: 0 },
+        })
+        property var toneCurve: [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+
+        function setGrade(key, x, y, master) {
+            const next = Object.assign({}, grade)
+            next[key] = { x: x, y: y, master: master }
+            grade = next
+        }
+
+        function resetGrade() {
+            grade = {
+                lift:  { x: 0, y: 0, master: 0 },
+                gamma: { x: 0, y: 0, master: 0 },
+                gain:  { x: 0, y: 0, master: 0 },
+            }
+            toneCurve = [{ x: 0, y: 0 }, { x: 1, y: 1 }]
+        }
+
+        // Samples of the displayed frame for the scopes. Empty until a frame
+        // exists; the stand-in below stands for real pixel readback.
+        property var frameSamples: []
+
+        function sampleFrame() {
+            const out = []
+            const seed = Math.floor(playhead * 1000)
+            let x = seed * 9301 + 49297
+            for (var i = 0; i < 220; i++) {
+                x = (x * 9301 + 49297) % 233280
+                const n = x / 233280
+                const base = 0.25 + 0.5 * Math.abs(Math.sin(i / 24 + playhead * 6))
+                out.push({
+                    r: Math.min(1, base + n * 0.18 + grade.gain.master * 0.3),
+                    g: Math.min(1, base + n * 0.12 + grade.gamma.master * 0.3),
+                    b: Math.min(1, base * 0.92 + n * 0.2 + grade.lift.master * 0.3),
+                })
+            }
+            return out
+        }
+
+        // ---- delivery ------------------------------------------------------
+        property var exportQueue: []
+
+        function queueExport(presetName) {
+            const job = {
+                name: presetName + " · " + projectTitle,
+                progress: 0.0,
+            }
+            exportQueue = exportQueue.concat([job])
+        }
 
         property var collaborators: [
             { name: "You",      initials: "YJ", hue: "#0a84ff" },
@@ -161,6 +224,33 @@ ApplicationWindow {
                 })
             })
             sessionModel.tracks = next
+
+            // Scopes read the frame that is on screen.
+            if (sessionModel.workspace === "Color")
+                sessionModel.frameSamples = sessionModel.sampleFrame()
+        }
+    }
+
+    // Sample once when entering Color so the scopes are not blank while paused.
+    Connections {
+        target: sessionModel
+        function onWorkspaceChanged() {
+            if (sessionModel.workspace === "Color")
+                sessionModel.frameSamples = sessionModel.sampleFrame()
+        }
+    }
+
+    // Export jobs advance while queued.
+    Timer {
+        running: sessionModel.exportQueue.some(function (j) { return j.progress < 1 })
+        interval: 120
+        repeat: true
+        onTriggered: {
+            sessionModel.exportQueue = sessionModel.exportQueue.map(function (job) {
+                return job.progress >= 1
+                    ? job
+                    : Object.assign({}, job, { progress: Math.min(1, job.progress + 0.035) })
+            })
         }
     }
 
@@ -190,6 +280,22 @@ ApplicationWindow {
         onActivated: sessionModel.selectedClip = ""
     }
 
+    // Workspace shortcuts, the way editors expect them.
+    Repeater {
+        model: sessionModel.workspaces
+
+        Item {
+            id: workspaceShortcut
+            required property var modelData
+            required property int index
+
+            Shortcut {
+                sequence: "Ctrl+" + (workspaceShortcut.index + 1)
+                onActivated: root.openWorkspace(workspaceShortcut.modelData)
+            }
+        }
+    }
+
     // ---- layout ----------------------------------------------------------------
     ColumnLayout {
         anchors.fill: parent
@@ -208,6 +314,8 @@ ApplicationWindow {
             }
         }
 
+        // The upper region is what the workspace changes; the timeline stays,
+        // because every workspace is still editing the same sequence.
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -216,26 +324,57 @@ ApplicationWindow {
             LibraryPanel {
                 Layout.preferredWidth: 264
                 Layout.fillHeight: true
+                visible: sessionModel.workspace === "Edit"
                 session: sessionModel
             }
 
             PreviewPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                visible: sessionModel.workspace === "Edit"
+                    || sessionModel.workspace === "Color"
+                Layout.maximumWidth: sessionModel.workspace === "Color"
+                    ? parent.width * 0.42 : parent.width
+                session: sessionModel
+            }
+
+            ColorPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: sessionModel.workspace === "Color"
+                session: sessionModel
+            }
+
+            AudioPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: sessionModel.workspace === "Audio"
+                session: sessionModel
+            }
+
+            DeliverPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: sessionModel.workspace === "Deliver"
                 session: sessionModel
             }
 
             InspectorPanel {
                 Layout.preferredWidth: 300
                 Layout.fillHeight: true
+                visible: sessionModel.workspace === "Edit"
                 session: sessionModel
             }
         }
 
         TimelinePanel {
             Layout.fillWidth: true
-            Layout.preferredHeight: 300
+            Layout.preferredHeight: sessionModel.workspace === "Deliver" ? 180 : 300
             session: sessionModel
+
+            Behavior on Layout.preferredHeight {
+                NumberAnimation { duration: Theme.normal }
+            }
         }
     }
 }
