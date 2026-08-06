@@ -8,7 +8,34 @@
       "volume": 1.0,
       "clips": [
         { "label": "Title Intro", "media": "Drone_04", "start": 0.02, "width": 0.12 },
-        { "label": "Lower Third", "media": "B012_Wide", "start": 0.30, "width": 0.10 }
+        {
+          "label": "Lower Third", "media": "B012_Wide", "start": 0.30, "width": 0.10,
+          "effects": [
+            {
+              "name": "Transform", "on": true,
+              "params": [
+                { "name": "Scale", "value": 0.45, "keyframes": [] },
+                { "name": "Position X", "value": 0.72, "keyframes": [] },
+                { "name": "Position Y", "value": 0.74, "keyframes": [] },
+                { "name": "Rotation", "value": 0, "keyframes": [] }
+              ]
+            },
+            {
+              "name": "Opacity", "on": true,
+              "params": [
+                {
+                  "name": "Level", "value": 1,
+                  "keyframes": [
+                    { "time": 0.0, "value": 0.0 },
+                    { "time": 0.25, "value": 1.0 },
+                    { "time": 0.75, "value": 1.0 },
+                    { "time": 1.0, "value": 0.0 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
