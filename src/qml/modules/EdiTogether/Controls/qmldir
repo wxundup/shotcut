@@ -16,3 +16,4 @@ Scope 1.0 Scope.qml
 CurveEditor 1.0 CurveEditor.qml
 ChannelFader 1.0 ChannelFader.qml
 KeyframeStrip 1.0 KeyframeStrip.qml
+FrameSampler 1.0 FrameSampler.qml

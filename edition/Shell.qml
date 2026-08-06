@@ -70,26 +70,10 @@ ApplicationWindow {
             toneCurve = [{ x: 0, y: 0 }, { x: 1, y: 1 }]
         }
 
-        // Samples of the displayed frame for the scopes. Empty until a frame
-        // exists; the stand-in below stands for real pixel readback.
+        // Scope samples, filled by reading pixels back from the program
+        // monitor (see FrameSampler in PreviewPanel). Empty until a frame
+        // has been grabbed.
         property var frameSamples: []
-
-        function sampleFrame() {
-            const out = []
-            const seed = Math.floor(playhead * 1000)
-            let x = seed * 9301 + 49297
-            for (var i = 0; i < 220; i++) {
-                x = (x * 9301 + 49297) % 233280
-                const n = x / 233280
-                const base = 0.25 + 0.5 * Math.abs(Math.sin(i / 24 + playhead * 6))
-                out.push({
-                    r: Math.min(1, base + n * 0.18 + grade.gain.master * 0.3),
-                    g: Math.min(1, base + n * 0.12 + grade.gamma.master * 0.3),
-                    b: Math.min(1, base * 0.92 + n * 0.2 + grade.lift.master * 0.3),
-                })
-            }
-            return out
-        }
 
         // ---- effects -------------------------------------------------------
         // The stack applied to the selected clip. Parameters carry their own
@@ -305,19 +289,6 @@ ApplicationWindow {
                 })
             })
             sessionModel.tracks = next
-
-            // Scopes read the frame that is on screen.
-            if (sessionModel.workspace === "Color")
-                sessionModel.frameSamples = sessionModel.sampleFrame()
-        }
-    }
-
-    // Sample once when entering Color so the scopes are not blank while paused.
-    Connections {
-        target: sessionModel
-        function onWorkspaceChanged() {
-            if (sessionModel.workspace === "Color")
-                sessionModel.frameSamples = sessionModel.sampleFrame()
         }
     }
 

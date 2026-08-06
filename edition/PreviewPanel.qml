@@ -14,6 +14,25 @@ Rectangle {
 
     color: Theme.window
 
+    // Real pixel readback feeding the scopes.
+    FrameSampler {
+        id: sampler
+        source: programFrame
+        active: preview.session.workspace === "Color"
+        onSamplesChanged: preview.session.frameSamples = samples
+    }
+
+    // Re-read when the picture changes even if the transport is parked.
+    Connections {
+        target: preview.session
+        function onPlayheadChanged() { if (sampler.active) sampler.grab() }
+        function onGradeChanged() { if (sampler.active) sampler.grab() }
+        function onWorkspaceChanged() {
+            if (preview.session.workspace === "Color")
+                sampler.grab()
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.l
@@ -37,19 +56,13 @@ Rectangle {
                 height: width / 16 * 9
                 color: "#0b0b0d"
 
-                Text {
-                    anchors.centerIn: parent
-                    text: preview.session.playing ? "" : "Program"
-                    font: Theme.headlineFont
-                    color: Theme.textTertiary
-                }
-
-                // playhead flash while playing
-                Rectangle {
+                // The rendered picture. Scopes read this item back, so what
+                // they draw is the frame on screen.
+                ProgramFrame {
+                    id: programFrame
                     anchors.fill: parent
-                    color: Theme.accent
-                    opacity: preview.session.playing ? 0.02 : 0
-                    Behavior on opacity { NumberAnimation { duration: Theme.normal } }
+                    playhead: preview.session.playhead
+                    grade: preview.session.grade
                 }
 
                 // Action-safe 90% and title-safe 80%, the broadcast defaults.
