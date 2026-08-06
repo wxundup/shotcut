@@ -71,6 +71,9 @@ Run the relay: `editogether-collab [bind-addr]` (default 127.0.0.1:7788).
 ## Build and verification
 
 ```powershell
+# preflight: qmllint + clang-format + relay tests in one pass
+powershell -ExecutionPolicy Bypass -File scripts/check-editogether.ps1
+
 # design system + shell (no compile needed)
 C:\Qt\6.9.3\msvc2022_64\bin\qmllint.exe -I shotcut\src\qml\modules -I edition edition\*.qml
 C:\Qt\6.9.3\msvc2022_64\bin\qml.exe -I shotcut\src\qml\modules -I edition edition\Shell.qml
