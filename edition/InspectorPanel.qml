@@ -47,9 +47,11 @@ Rectangle {
         }
 
         Text {
-            text: "A007_Take1"
+            text: inspector.session.selectedClip !== ""
+                ? inspector.session.selectedClip : qsTr("No selection")
             font: Theme.calloutFont
-            color: Theme.textSecondary
+            color: inspector.session.selectedClip !== ""
+                ? Theme.textSecondary : Theme.textTertiary
             elide: Text.ElideMiddle
             Layout.fillWidth: true
         }

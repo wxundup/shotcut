@@ -89,7 +89,14 @@ Rectangle {
                         width: parent.width
                         height: parent.height - 20
                         radius: Theme.radiusControl
-                        color: mediaItem.tint
+                        color: thumbMouse.containsMouse
+                            ? Qt.lighter(mediaItem.tint, 1.12) : mediaItem.tint
+                        border.width: 2
+                        border.color: library.session.selectedClip
+                            === mediaItem.label.split(".")[0]
+                            ? Theme.accent : "transparent"
+
+                        Behavior on color { ColorAnimation { duration: Theme.fast } }
 
                         Text {
                             anchors.right: parent.right
@@ -98,6 +105,14 @@ Rectangle {
                             text: mediaItem.dur
                             font: Theme.captionFont
                             color: Theme.textOnAccent
+                        }
+
+                        MouseArea {
+                            id: thumbMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: library.session.selectedClip
+                                = mediaItem.label.split(".")[0]
                         }
                     }
 

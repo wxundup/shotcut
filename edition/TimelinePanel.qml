@@ -148,6 +148,9 @@ Rectangle {
                             Rectangle {
                                 id: clip
                                 required property var modelData
+                                readonly property bool selected:
+                                    timeline.session.selectedClip === modelData.label
+
                                 x: timeline.headerWidth
                                    + modelData.start * (timeline.width - timeline.headerWidth)
                                 y: Theme.xxs
@@ -155,10 +158,14 @@ Rectangle {
                                        * (timeline.width - timeline.headerWidth) - Theme.xxs)
                                 height: parent.height - Theme.xs
                                 radius: Theme.radiusControl
-                                color: modelData.hue
-                                opacity: 0.9
-                                border.width: 1
-                                border.color: Qt.lighter(modelData.hue, 1.25)
+                                color: clipMouse.containsMouse
+                                    ? Qt.lighter(modelData.hue, 1.12) : modelData.hue
+                                opacity: clip.selected ? 1.0 : 0.9
+                                border.width: clip.selected ? 2 : 1
+                                border.color: clip.selected
+                                    ? Theme.text : Qt.lighter(modelData.hue, 1.25)
+
+                                Behavior on color { ColorAnimation { duration: Theme.fast } }
 
                                 Text {
                                     anchors.left: parent.left
@@ -169,6 +176,13 @@ Rectangle {
                                     color: Theme.textOnAccent
                                     elide: Text.ElideRight
                                     width: parent.width - Theme.s * 2
+                                }
+
+                                MouseArea {
+                                    id: clipMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: timeline.session.selectedClip = clip.modelData.label
                                 }
                             }
                         }

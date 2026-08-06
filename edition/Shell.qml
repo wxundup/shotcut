@@ -28,6 +28,7 @@ ApplicationWindow {
         property real duration: 96.0          // seconds
         property string workspace: "edit"
         property bool snap: true
+        property string selectedClip: "A007_Take1"
 
         property var collaborators: [
             { name: "You",      initials: "YJ", hue: "#0a84ff" },
