@@ -21,6 +21,7 @@ Rectangle {
         spacing: Theme.s
 
         Text {
+            id: heading
             text: control.title
             font: Theme.titleFont
             color: Theme.text
@@ -32,8 +33,9 @@ Rectangle {
         Item {
             id: body
             width: parent.width
-            height: parent.height - (control.title !== ""
-                ? parent.children[0].height + Theme.s : 0)
+            // Column skips invisible items, so only subtract the spacing
+            // when the heading actually takes a row.
+            height: parent.height - (heading.visible ? heading.height + Theme.s : 0)
         }
     }
 }

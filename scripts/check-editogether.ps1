@@ -27,6 +27,16 @@ if (Test-Path $qmllint) {
     Write-Host "skipped (no qmllint at $qtBin)"
 }
 
+Write-Host '== qml tests =='
+$runner = Join-Path $qtBin 'qmltestrunner.exe'
+if (Test-Path $runner) {
+    & $runner -input "$repo\edition\tests" -import "$repo\src\qml\modules" -platform offscreen
+    if ($LASTEXITCODE -ne 0) { $failed += 'qmltestrunner' }
+    Write-Host "primitives: exit $LASTEXITCODE"
+} else {
+    Write-Host "skipped (no qmltestrunner at $qtBin)"
+}
+
 Write-Host '== clang-format =='
 if (Get-Command clang-format -ErrorAction SilentlyContinue) {
     $version = (clang-format --version)
