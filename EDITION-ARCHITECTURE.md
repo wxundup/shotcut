@@ -66,7 +66,14 @@ qualified id access, required delegate properties).
 - Sync v2 (op-level through the undo stack) is the upgrade path; the relay's
   op vocabulary already matches it.
 
-Run the relay: `editogether-collab [bind-addr]` (default 127.0.0.1:7788).
+Run the relay: `editogether-collab [bind-addr]`. Only the host's machine runs
+it, and it must be started before hosting or joining.
+
+The default bind is `127.0.0.1:7788` — same-machine only. Reaching it from
+other machines is a deliberate act: `editogether-collab 0.0.0.0:7788` exposes
+the relay to the local network. There is no transport encryption and no
+authentication beyond the invite code, so that is a trusted-LAN posture, not
+an internet-facing one.
 
 ## Build and verification
 

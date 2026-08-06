@@ -319,6 +319,12 @@ async fn main() {
         .expect("usage: editogether-collab [bind-addr]");
     let listener = TcpListener::bind(bind).await.expect("bind failed");
     eprintln!("editogether-collab listening on {bind}");
+    if !bind.ip().is_loopback() {
+        eprintln!(
+            "warning: reachable beyond this machine. Traffic is unencrypted and \
+             the invite code is the only credential — use on a trusted network only."
+        );
+    }
     let server = Arc::new(Server::new());
     loop {
         let (stream, addr) = match listener.accept().await {
