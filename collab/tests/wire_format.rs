@@ -101,6 +101,26 @@ async fn cpp_client_wire_format() {
     assert_eq!(snapshot["t"], "snapshot");
     assert_eq!(snapshot["mlt_xml"], "<mlt><playlist/></mlt>");
 
+    // a guest cannot forge a session event: room-closed would kick the room
+    guest_tx
+        .send(Message::Text(
+            r#"{"t":"room-closed","reason":"forged"}"#.into(),
+        ))
+        .await
+        .unwrap();
+    // the host must not see it; prove the connection still carries real traffic
+    guest_tx
+        .send(Message::Text(
+            r#"{"t":"presence","from":0,"playhead":0.5}"#.into(),
+        ))
+        .await
+        .unwrap();
+    let next = recv_json(&mut host_rx).await;
+    assert_eq!(
+        next["t"], "presence",
+        "relay forwarded a peer-forged session event: {next}"
+    );
+
     // a bad invite is answered privately, not broadcast
     let (stranger, _) = connect_async(&url).await.unwrap();
     let (mut stranger_tx, mut stranger_rx) = stranger.split();

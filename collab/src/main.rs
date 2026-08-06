@@ -233,7 +233,25 @@ async fn handle_conn(server: Arc<Server>, stream: TcpStream, _addr: SocketAddr) 
                 let id = server.alloc_id().await;
                 let mut rooms = server.rooms.lock().await;
                 let (code, host_id) = if role == "host" {
-                    let code = new_invite_code();
+                    // A collision would replace a live room and orphan its peers.
+                    let mut code = new_invite_code();
+                    let mut attempts = 0;
+                    while rooms.contains_key(&code) {
+                        attempts += 1;
+                        if attempts > 32 {
+                            let _ = tx.send(
+                                serde_json::to_string(&Wire::Error {
+                                    reason: "no invite code available".into(),
+                                })
+                                .unwrap_or_default(),
+                            );
+                            break;
+                        }
+                        code = new_invite_code();
+                    }
+                    if rooms.contains_key(&code) {
+                        continue;
+                    }
                     rooms.insert(
                         code.clone(),
                         Room { code: code.clone(), host_id: id, peers: HashMap::new() },
@@ -272,18 +290,21 @@ async fn handle_conn(server: Arc<Server>, stream: TcpStream, _addr: SocketAddr) 
                 let (Some(id), Some(code)) = (peer_id, room_code.clone()) else {
                     continue;
                 };
+                // Only peer-originated messages cross the relay, each stamped
+                // with the authenticated sender. Session events (welcome,
+                // peer-joined/left, room-closed, error) are the relay's to
+                // announce; a peer forging one could kick a whole room.
+                let stamped = match w {
+                    Wire::Op { rev, op, .. } => Wire::Op { from: id, rev, op },
+                    Wire::SnapshotReq { .. } => Wire::SnapshotReq { from: id },
+                    Wire::Snapshot { mlt_xml, .. } => Wire::Snapshot { from: id, mlt_xml },
+                    Wire::Presence { playhead, selection, .. } => {
+                        Wire::Presence { from: id, playhead, selection }
+                    }
+                    _ => continue,
+                };
                 let mut rooms = server.rooms.lock().await;
                 if let Some(room) = rooms.get_mut(&code) {
-                    // stamp sender so forged origins cannot lie
-                    let stamped = match w {
-                        Wire::Op { rev, op, .. } => Wire::Op { from: id, rev, op },
-                        Wire::SnapshotReq { .. } => Wire::SnapshotReq { from: id },
-                        Wire::Snapshot { mlt_xml, .. } => Wire::Snapshot { from: id, mlt_xml },
-                        Wire::Presence { playhead, selection, .. } => {
-                            Wire::Presence { from: id, playhead, selection }
-                        }
-                        other => other,
-                    };
                     room.broadcast(&stamped, Some(id));
                 }
             }
