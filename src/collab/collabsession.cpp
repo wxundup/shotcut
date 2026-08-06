@@ -47,6 +47,22 @@ CollabSession::CollabSession(MainWindow *win)
             m_win->open(path);
         QFile::remove(path);
     });
+    connect(&m_client, &CollabClient::peerJoined, this, [this](const QJsonObject &peer) {
+        m_win->showStatusMessage(tr("%1 joined the session").arg(peer.value("name").toString()));
+    });
+    connect(&m_client, &CollabClient::peerLeft, this, [this](qint64) {
+        m_win->showStatusMessage(tr("A collaborator left the session"));
+    });
+    connect(&m_client, &CollabClient::roomClosed, this, [this](const QString &reason) {
+        m_roomCode.clear();
+        m_debounce->stop();
+        m_win->showStatusMessage(tr("Collaboration session ended: %1").arg(reason), 15);
+    });
+    connect(&m_client, &CollabClient::connectionError, this, [this](const QString &reason) {
+        m_roomCode.clear();
+        m_debounce->stop();
+        m_win->showStatusMessage(tr("Collaboration error: %1").arg(reason), 15);
+    });
 }
 
 void CollabSession::startHost()
