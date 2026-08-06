@@ -38,28 +38,69 @@ ApplicationWindow {
             { name: "Deniz A.", initials: "DA", hue: "#ffd60a" },
         ]
 
-        property var videoTracks: [
-            { name: "V2", clips: [
-                { label: "Title Intro", start: 0.02, width: 0.12, hue: "#5e5ce6" },
-                { label: "Lower Third", start: 0.30, width: 0.10, hue: "#5e5ce6" },
+        // Tracks carry their own state so the heads are real controls, not
+        // decoration. Audio clips carry peak arrays; a real project would
+        // fill these from PCM analysis rather than the stand-in below.
+        property var tracks: [
+            { name: "V2", audio: false, muted: false, soloed: false, locked: false,
+              volume: 1.0, level: 0.0, clips: [
+                { label: "Title Intro", start: 0.02, width: 0.12, kind: "title" },
+                { label: "Lower Third", start: 0.30, width: 0.10, kind: "title" },
             ]},
-            { name: "V1", clips: [
-                { label: "A003_Take2", start: 0.00, width: 0.22, hue: "#0a84ff" },
-                { label: "A007_Take1", start: 0.24, width: 0.30, hue: "#0a84ff" },
-                { label: "B012_Wide",  start: 0.56, width: 0.26, hue: "#0a84ff" },
-                { label: "Drone_04",   start: 0.84, width: 0.14, hue: "#0a84ff" },
+            { name: "V1", audio: false, muted: false, soloed: false, locked: false,
+              volume: 1.0, level: 0.0, clips: [
+                { label: "A003_Take2", start: 0.00, width: 0.22, kind: "video" },
+                { label: "A007_Take1", start: 0.24, width: 0.30, kind: "video" },
+                { label: "B012_Wide",  start: 0.56, width: 0.26, kind: "video" },
+                { label: "Drone_04",   start: 0.84, width: 0.14, kind: "video" },
+            ]},
+            { name: "A1", audio: true, muted: false, soloed: false, locked: false,
+              volume: 0.82, level: 0.0, clips: [
+                { label: "VO_Final",   start: 0.04, width: 0.40, kind: "audio", seed: 7 },
+                { label: "VO_Final_2", start: 0.48, width: 0.34, kind: "audio", seed: 23 },
+            ]},
+            { name: "A2", audio: true, muted: false, soloed: false, locked: false,
+              volume: 0.55, level: 0.0, clips: [
+                { label: "Score_Loop", start: 0.00, width: 0.98, kind: "audio", seed: 41 },
             ]},
         ]
 
-        property var audioTracks: [
-            { name: "A1", clips: [
-                { label: "VO_Final",   start: 0.04, width: 0.40, hue: "#30d158" },
-                { label: "VO_Final_2", start: 0.48, width: 0.34, hue: "#30d158" },
-            ]},
-            { name: "A2", clips: [
-                { label: "Score_Loop", start: 0.00, width: 0.98, hue: "#66d4cf" },
-            ]},
-        ]
+        // Stand-in peaks: stable for a given seed so the drawing never
+        // flickers between frames. Replaced by real analysis later.
+        function peaksFor(seed, count) {
+            const out = []
+            let x = seed * 9301 + 49297
+            for (var i = 0; i < count; i++) {
+                x = (x * 9301 + 49297) % 233280
+                const noise = x / 233280
+                const envelope = 0.35 + 0.45 * Math.abs(Math.sin(i / 7 + seed))
+                out.push(Math.min(1, envelope * (0.55 + 0.75 * noise)))
+            }
+            return out
+        }
+
+        // Stand-in thumbnails until real decode is wired in. Each clip gets a
+        // stable set so the strip does not shuffle on every repaint.
+        readonly property var thumbnailSets: ({
+            "A003_Take2": ["thumbs/take2-a.svg", "thumbs/take2-b.svg", "thumbs/take2-c.svg"],
+            "A007_Take1": ["thumbs/take1-a.svg", "thumbs/take1-b.svg", "thumbs/take1-c.svg"],
+            "B012_Wide":  ["thumbs/wide-a.svg", "thumbs/wide-b.svg"],
+            "Drone_04":   ["thumbs/drone-a.svg", "thumbs/drone-b.svg"],
+        })
+
+        function thumbnailsFor(label) {
+            const set = thumbnailSets[label]
+            if (!set)
+                return []
+            return set.map(function (p) { return Qt.resolvedUrl(p) })
+        }
+
+        function setTrackProperty(index, key, value) {
+            const copy = tracks.slice()
+            copy[index] = Object.assign({}, copy[index])
+            copy[index][key] = value
+            tracks = copy
+        }
 
         function timecode(t) {
             const total = Math.max(0, t)

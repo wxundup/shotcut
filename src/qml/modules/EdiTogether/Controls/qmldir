@@ -7,3 +7,7 @@ Switch 1.0 Switch.qml
 Segmented 1.0 Segmented.qml
 Panel 1.0 Panel.qml
 ScrubBar 1.0 ScrubBar.qml
+Waveform 1.0 Waveform.qml
+Filmstrip 1.0 Filmstrip.qml
+TrackHead 1.0 TrackHead.qml
+LevelMeter 1.0 LevelMeter.qml

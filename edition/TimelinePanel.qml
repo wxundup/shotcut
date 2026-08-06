@@ -14,8 +14,8 @@ Rectangle {
 
     color: Theme.panel
 
-    readonly property int headerWidth: 96
-    readonly property int trackHeight: 44
+    readonly property int headerWidth: 116
+    readonly property int trackHeight: Theme.trackHeight
     readonly property int rulerHeight: 24
 
     Rectangle {
@@ -121,7 +121,7 @@ Rectangle {
                 spacing: Theme.xxs
 
                 Repeater {
-                    model: timeline.session.videoTracks.concat(timeline.session.audioTracks)
+                    model: timeline.session.tracks
 
                     Rectangle {
                         id: track
@@ -129,16 +129,27 @@ Rectangle {
                         required property int index
                         width: timeline.width
                         height: timeline.trackHeight
-                        radius: Theme.xs
+                        radius: Theme.premiere ? 0 : Theme.xs
                         color: index % 2 === 0 ? Theme.trackEven : Theme.trackOdd
 
-                        // track header
-                        Text {
-                            x: Theme.m
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: track.modelData.name
-                            font: Theme.bodyFont
-                            color: Theme.textSecondary
+                        TrackHead {
+                            width: timeline.headerWidth - Theme.xs
+                            height: parent.height
+                            name: track.modelData.name
+                            audio: track.modelData.audio
+                            muted: track.modelData.muted
+                            soloed: track.modelData.soloed
+                            locked: track.modelData.locked
+                            volume: track.modelData.volume
+                            level: track.modelData.level
+                            onMuteToggled: timeline.session.setTrackProperty(
+                                track.index, "muted", !track.modelData.muted)
+                            onSoloToggled: timeline.session.setTrackProperty(
+                                track.index, "soloed", !track.modelData.soloed)
+                            onLockToggled: timeline.session.setTrackProperty(
+                                track.index, "locked", !track.modelData.locked)
+                            onVolumeRequested: (value) => timeline.session.setTrackProperty(
+                                track.index, "volume", value)
                         }
 
                         // clips
@@ -150,6 +161,10 @@ Rectangle {
                                 required property var modelData
                                 readonly property bool selected:
                                     timeline.session.selectedClip === modelData.label
+                                readonly property color base:
+                                    modelData.kind === "audio" ? Theme.clipAudio
+                                    : modelData.kind === "title" ? Theme.clipTitle
+                                    : Theme.clipVideo
 
                                 x: timeline.headerWidth
                                    + modelData.start * (timeline.width - timeline.headerWidth)
@@ -158,30 +173,69 @@ Rectangle {
                                        * (timeline.width - timeline.headerWidth) - Theme.xxs)
                                 height: parent.height - Theme.xs
                                 radius: Theme.radiusControl
-                                color: clipMouse.containsMouse
-                                    ? Qt.lighter(modelData.hue, 1.12) : modelData.hue
-                                opacity: clip.selected ? 1.0 : 0.9
+                                clip: true
+                                color: clipMouse.containsMouse ? Qt.lighter(base, 1.12) : base
+                                opacity: track.modelData.locked ? 0.55
+                                    : clip.selected ? 1.0 : 0.92
                                 border.width: clip.selected ? 2 : 1
-                                border.color: clip.selected
-                                    ? Theme.text : Qt.lighter(modelData.hue, 1.25)
+                                border.color: clip.selected ? Theme.text : Qt.lighter(base, 1.25)
 
                                 Behavior on color { ColorAnimation { duration: Theme.fast } }
 
+                                // Video clips show sampled frames; audio clips
+                                // show their peaks. Neither invents content.
+                                Filmstrip {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 14
+                                    anchors.bottom: parent.bottom
+                                    anchors.margins: 1
+                                    visible: clip.modelData.kind === "video"
+                                    frames: timeline.session.thumbnailsFor(clip.modelData.label)
+                                }
+
+                                Waveform {
+                                    anchors.fill: parent
+                                    anchors.topMargin: 12
+                                    anchors.margins: 2
+                                    visible: clip.modelData.kind === "audio"
+                                    gain: track.modelData.muted ? 0.25 : track.modelData.volume
+                                    peaks: clip.modelData.kind === "audio"
+                                        ? timeline.session.peaksFor(
+                                            clip.modelData.seed,
+                                            Math.max(8, Math.floor(clip.width / 3)))
+                                        : []
+                                }
+
+                                // label sits above the content with a scrim
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    height: 14
+                                    color: Qt.darker(clip.base, 1.35)
+                                    opacity: 0.85
+                                }
+
                                 Text {
                                     anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.leftMargin: Theme.s
+                                    anchors.top: parent.top
+                                    anchors.leftMargin: Theme.xs
+                                    height: 14
+                                    verticalAlignment: Text.AlignVCenter
                                     text: clip.modelData.label
                                     font: Theme.captionFont
                                     color: Theme.textOnAccent
                                     elide: Text.ElideRight
-                                    width: parent.width - Theme.s * 2
+                                    width: parent.width - Theme.s
                                 }
 
                                 MouseArea {
                                     id: clipMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
+                                    enabled: !track.modelData.locked
                                     onClicked: timeline.session.selectedClip = clip.modelData.label
                                 }
                             }

@@ -138,6 +138,27 @@ Rectangle {
             }
         }
 
+        // Theme switch: the default look, or Premiere-familiar chrome.
+        ToolButton {
+            text: qsTr("Theme")
+            tip: Theme.premiere
+                ? qsTr("Premiere theme — click for EdiTogether")
+                : qsTr("EdiTogether theme — click for Premiere")
+            onClicked: Theme.variant = Theme.premiere ? "editogether" : "premiere"
+
+            contentItem: Rectangle {
+                implicitWidth: Theme.iconSize
+                implicitHeight: Theme.iconSize
+                radius: Theme.premiere ? 2 : width / 2
+                color: Theme.accent
+                border.width: 1
+                border.color: Theme.border
+
+                Behavior on radius { NumberAnimation { duration: Theme.normal } }
+                Behavior on color { ColorAnimation { duration: Theme.normal } }
+            }
+        }
+
         Button {
             kind: "primary"
             text: toolbar.session.inviteCode !== ""
