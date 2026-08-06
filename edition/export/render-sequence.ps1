@@ -22,12 +22,22 @@ $ErrorActionPreference = 'Stop'
 
 $bin = if ($env:EDITOGETHER_FFMPEG_BIN) { $env:EDITOGETHER_FFMPEG_BIN } else { "" }
 $ffmpeg = if ($bin) { Join-Path $bin 'ffmpeg.exe' } else { (Get-Command ffmpeg).Source }
+$ffprobe = if ($bin) { Join-Path $bin 'ffprobe.exe' } else { (Get-Command ffprobe).Source }
 
+# Delivery colour: 1080p and below deliver Rec.709; UHD delivers Rec.2020
+# when asked for. Every preset states its primaries, transfer and matrix so
+# the output is tagged rather than left for a player to guess.
 $presets = @{
-    'h264-1080p'   = @{ w = 1920; h = 1080; rate = '30000/1001'; vcodec = 'libx264'; vbitrate = '24M'; acodec = 'aac'; abitrate = '320k' }
-    'h264-2160p'   = @{ w = 3840; h = 2160; rate = '30000/1001'; vcodec = 'libx264'; vbitrate = '60M'; acodec = 'aac'; abitrate = '320k' }
-    'prores-422hq' = @{ w = 1920; h = 1080; rate = '30000/1001'; vcodec = 'prores_ks'; vbitrate = ''; acodec = 'pcm_s24le'; abitrate = '' }
-    'vertical-1080x1920' = @{ w = 1080; h = 1920; rate = '30'; vcodec = 'libx264'; vbitrate = '18M'; acodec = 'aac'; abitrate = '256k' }
+    'h264-1080p'   = @{ w = 1920; h = 1080; rate = '30000/1001'; vcodec = 'libx264'; vbitrate = '24M'; acodec = 'aac'; abitrate = '320k';
+                        primaries = 'bt709'; trc = 'bt709'; space = 'bt709'; range = 'tv'; depth = 8 }
+    'h264-2160p'   = @{ w = 3840; h = 2160; rate = '30000/1001'; vcodec = 'libx264'; vbitrate = '60M'; acodec = 'aac'; abitrate = '320k';
+                        primaries = 'bt709'; trc = 'bt709'; space = 'bt709'; range = 'tv'; depth = 8 }
+    'prores-422hq' = @{ w = 1920; h = 1080; rate = '30000/1001'; vcodec = 'prores_ks'; vbitrate = ''; acodec = 'pcm_s24le'; abitrate = '';
+                        primaries = 'bt709'; trc = 'bt709'; space = 'bt709'; range = 'tv'; depth = 10 }
+    'vertical-1080x1920' = @{ w = 1080; h = 1920; rate = '30'; vcodec = 'libx264'; vbitrate = '18M'; acodec = 'aac'; abitrate = '256k';
+                        primaries = 'bt709'; trc = 'bt709'; space = 'bt709'; range = 'tv'; depth = 8 }
+    'hdr-2160p-pq' = @{ w = 3840; h = 2160; rate = '30000/1001'; vcodec = 'libx265'; vbitrate = '80M'; acodec = 'aac'; abitrate = '320k';
+                        primaries = 'bt2020'; trc = 'smpte2084'; space = 'bt2020nc'; range = 'tv'; depth = 10 }
 }
 
 if (-not $presets.ContainsKey($Preset)) {
@@ -80,16 +90,50 @@ $videoOps = @($videoOps | Sort-Object -Property @{
 
 if ($inputs.Count -eq 0) { throw "sequence has no renderable clips" }
 
-$args = @('-y', '-loglevel', 'error', '-stats')
+$logLevel = if ($env:EDITOGETHER_FFMPEG_LOGLEVEL) { $env:EDITOGETHER_FFMPEG_LOGLEVEL } else { 'error' }
+$ffArgs = @('-y', '-loglevel', $logLevel, '-stats')
 foreach ($i in $inputs) {
     # Loop short sources so a clip longer than its media still fills its slot.
-    $args += @('-stream_loop', '-1', '-i', $i.path)
+    $ffArgs += @('-stream_loop', '-1', '-i', $i.path)
 }
+
+# Reads a source's colour tags. Untagged SDR material is treated as Rec.709,
+# which is what it almost always is — the assumption is stated rather than
+# silently baked in.
+function Get-SourceColour($path) {
+    $probe = & $ffprobe -v error -select_streams v:0 `
+        -show_entries stream=color_primaries,color_transfer,color_space,color_range `
+        -of default=noprint_wrappers=1:nokey=0 $path
+    $result = @{ primaries = 'bt709'; trc = 'bt709'; space = 'bt709'; range = 'tv'; assumed = $true }
+    foreach ($line in $probe) {
+        $parts = $line -split '=', 2
+        if ($parts.Count -ne 2) { continue }
+        $value = $parts[1].Trim()
+        if ($value -eq 'unknown' -or $value -eq 'N/A' -or $value -eq '') { continue }
+        switch ($parts[0]) {
+            'color_primaries' { $result.primaries = $value; $result.assumed = $false }
+            'color_transfer'  { $result.trc = $value; $result.assumed = $false }
+            'color_space'     { $result.space = $value; $result.assumed = $false }
+            'color_range'     { $result.range = if ($value -eq 'pc') { 'pc' } else { 'tv' } }
+        }
+    }
+    return $result
+}
+
+# The working space: compositing happens in linear light so that opacity
+# blending and scaling are photometrically correct rather than being done on
+# gamma-encoded values. 16-bit float keeps the headroom for an HDR delivery.
+$workingFormat = 'gbrpf32le'
 
 $filter = New-Object System.Text.StringBuilder
 
-# Base canvas for the whole sequence.
-[void]$filter.Append("color=c=black:s=$($p.w)x$($p.h):r=$($p.rate):d=$duration[base];")
+# Base canvas, in the working space so the first overlay has a matching
+# input. The generated colour carries no tags, so state what it is before
+# asking for a conversion.
+[void]$filter.Append("color=c=black:s=$($p.w)x$($p.h):r=$($p.rate):d=$duration,")
+[void]$filter.Append("format=gbrp,")
+[void]$filter.Append("zscale=min=bt709:pin=bt709:tin=bt709:rin=tv:")
+[void]$filter.Append("p=$($p.primaries):t=linear:npl=100,format=$workingFormat[base];")
 
 # Builds an FFmpeg expression for a parameter: a constant, or a linear
 # interpolation between keyframes in clip-local time (0..1 of the clip).
@@ -154,7 +198,19 @@ foreach ($v in $videoOps) {
     $isTransformed = ($null -ne $scaleParam) -or ($null -ne $posXParam) -or
         ($null -ne $posYParam)
 
+    # Into the working space first: interpret the source with its own tags,
+    # linearise, and match the delivery primaries. Everything downstream —
+    # scaling, opacity, overlay — then happens in linear light.
+    $src = Get-SourceColour $v.path
+    if ($src.assumed) {
+        Write-Host "  $($v.clip.label): untagged, treating as Rec.709"
+    }
+
     [void]$filter.Append("[$($v.index):v]")
+    [void]$filter.Append("zscale=")
+    [void]$filter.Append("min=$($src.space):pin=$($src.primaries):tin=$($src.trc):rin=$($src.range):")
+    [void]$filter.Append("p=$($p.primaries):t=linear:npl=100,")
+    [void]$filter.Append("format=$workingFormat,")
     [void]$filter.Append("scale=$($p.w):$($p.h):force_original_aspect_ratio=decrease,")
     if (-not $isTransformed) {
         [void]$filter.Append("pad=$($p.w):$($p.h):(ow-iw)/2:(oh-ih)/2,")
@@ -179,7 +235,9 @@ foreach ($v in $videoOps) {
     # honours timing — geq has no sequence-time constant.
     if ($null -ne $opacityParam) {
         $keys = $opacityParam.keyframes
-        [void]$filter.Append("format=rgba,")
+        # Stay in float: dropping to 8-bit rgba here would both quantise the
+        # linear-light values and leave the overlay mixing formats.
+        [void]$filter.Append("format=gbrapf32le,")
         if ($null -eq $keys -or $keys.Count -lt 2) {
             $level = if ($null -eq $keys -or $keys.Count -eq 0) { $opacityParam.value }
                      else { $keys[0].value }
@@ -202,6 +260,13 @@ foreach ($v in $videoOps) {
                 [void]$filter.Append("fade=t=$dir`:st=$st`:d=$d`:alpha=1,")
             }
         }
+    }
+
+    # fade drops the colour tags it was handed, which leaves the final
+    # conversion with no path to follow. Re-state what the layer is.
+    if ($null -ne $opacityParam) {
+        [void]$filter.Append("setparams=color_primaries=$($p.primaries):")
+        [void]$filter.Append("color_trc=linear:colorspace=gbr:range=pc,")
     }
 
     # Now place the clip at its position on the timeline.
@@ -228,7 +293,26 @@ foreach ($v in $videoOps) {
     $last = $out
     $n++
 }
-[void]$filter.Append("[$last]format=yuv420p[vout];")
+# Out of the working space exactly once, into the delivery encoding. The
+# input side is stated because the composite is linear light in the delivery
+# primaries, which the filter cannot infer.
+$outFormat = if ($p.depth -ge 10) { 'yuv420p10le' } else { 'yuv420p' }
+# State what the composite is before converting: filters in the chain drop
+# colour tags, and zscale refuses to guess. Then two steps — linear to the
+# delivery transfer while still RGB, then RGB to the delivery matrix, since
+# one zscale cannot take an RGB input matrix alongside a YUV output.
+# State what the composite is, encode the delivery transfer while still in
+# RGB, then let the pixel-format conversion carry it to YUV. zscale will not
+# accept an RGB input matrix together with a YUV output, so the matrix is
+# tagged rather than asked of the same filter.
+# Normalise the composite to a known RGB format first: overlay and fade
+# leave the tag state inconsistent, and zscale will not guess. Then one
+# conversion carries transfer, primaries, matrix and range to delivery.
+[void]$filter.Append("[$last]format=gbrpf32le,")
+[void]$filter.Append("zscale=tin=linear:pin=$($p.primaries):rin=pc:npl=100:")
+[void]$filter.Append("t=$($p.trc):p=$($p.primaries):m=$($p.space):r=$($p.range):")
+[void]$filter.Append("dither=error_diffusion,")
+[void]$filter.Append("format=$outFormat[vout];")
 
 # Audio: trim, delay to position, apply the track fader, then mix.
 $audioLabels = @()
@@ -253,14 +337,29 @@ if ($audioLabels.Count -gt 0) {
     [void]$filter.Append("anullsrc=channel_layout=stereo:sample_rate=48000,atrim=duration=$duration[aout]")
 }
 
-$args += @('-filter_complex', $filter.ToString())
-$args += @('-map', '[vout]', '-map', '[aout]')
-$args += @('-c:v', $p.vcodec)
-if ($p.vbitrate) { $args += @('-b:v', $p.vbitrate) }
-if ($p.vcodec -eq 'libx264') { $args += @('-preset', 'medium', '-pix_fmt', 'yuv420p') }
-$args += @('-c:a', $p.acodec)
-if ($p.abitrate) { $args += @('-b:a', $p.abitrate) }
-$args += @('-t', $duration, $Output)
+$ffArgs += @('-filter_complex', $filter.ToString())
+$ffArgs += @('-map', '[vout]', '-map', '[aout]')
+$ffArgs += @('-c:v', $p.vcodec)
+if ($p.vbitrate) { $ffArgs += @('-b:v', $p.vbitrate) }
+if ($p.vcodec -eq 'libx264') { $ffArgs += @('-preset', 'medium') }
+if ($p.vcodec -eq 'libx265') { $ffArgs += @('-preset', 'medium') }
+
+# Tag the stream so a player reproduces the intended colour instead of
+# guessing from the resolution.
+$ffArgs += @(
+    '-color_primaries', $p.primaries,
+    '-color_trc', $p.trc,
+    '-colorspace', $p.space,
+    '-color_range', $p.range
+)
+if ($p.trc -eq 'smpte2084') {
+    # Mastering display metadata for PQ, without which HDR playback is
+    # undefined on most displays.
+    $ffArgs += @('-x265-params', 'hdr-opt=1:repeat-headers=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc')
+}
+$ffArgs += @('-c:a', $p.acodec)
+if ($p.abitrate) { $ffArgs += @('-b:a', $p.abitrate) }
+$ffArgs += @('-t', $duration, $Output)
 
 if ($env:EDITOGETHER_DUMP_GRAPH) {
     Write-Host "--- filter graph ---"
@@ -269,10 +368,10 @@ if ($env:EDITOGETHER_DUMP_GRAPH) {
 }
 
 Write-Host "rendering $($videoOps.Count) video and $($audioOps.Count) audio clips to $Output"
-& $ffmpeg @args
+& $ffmpeg @ffArgs
 if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed with $LASTEXITCODE" }
 
-$info = & (Join-Path (Split-Path $ffmpeg) 'ffprobe.exe') -v error `
+$info = & $ffprobe -v error `
     -show_entries format=duration,size -show_entries stream=codec_name,width,height `
     -of default=noprint_wrappers=1 $Output
 Write-Host "wrote $Output"
