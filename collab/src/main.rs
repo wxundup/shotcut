@@ -333,8 +333,23 @@ async fn handle_conn(server: Arc<Server>, stream: TcpStream, _addr: SocketAddr) 
 
 #[tokio::main]
 async fn main() {
-    let bind: SocketAddr = std::env::args()
-        .nth(1)
+    let arg = std::env::args().nth(1);
+    if matches!(arg.as_deref(), Some("--help" | "-h" | "/?")) {
+        println!(
+            "editogether-collab [bind-addr]\n\
+             \n\
+             Runs the collaboration relay for one editing session.\n\
+             \n\
+               editogether-collab                 listen on 127.0.0.1:7788 (this machine only)\n\
+               editogether-collab 0.0.0.0:7788    let other machines on the network join\n\
+             \n\
+             Traffic is unencrypted and the invite code is the only credential,\n\
+             so bind beyond loopback only on a network you trust."
+        );
+        return;
+    }
+
+    let bind: SocketAddr = arg
         .unwrap_or_else(|| "127.0.0.1:7788".into())
         .parse()
         .expect("usage: editogether-collab [bind-addr]");
