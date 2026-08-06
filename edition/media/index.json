@@ -19,7 +19,8 @@
                                  ],
                       "peaks":  [
 
-                                ]
+                                ],
+                      "proxy":  ""
                   },
                   {
                       "label":  "A007_Take1.mp4",
@@ -40,7 +41,8 @@
                                  ],
                       "peaks":  [
 
-                                ]
+                                ],
+                      "proxy":  ""
                   },
                   {
                       "label":  "B012_Wide.mp4",
@@ -61,7 +63,30 @@
                                  ],
                       "peaks":  [
 
-                                ]
+                                ],
+                      "proxy":  ""
+                  },
+                  {
+                      "label":  "C001_Master.mp4",
+                      "name":  "C001_Master",
+                      "duration":  6,
+                      "kind":  "video",
+                      "source":  "media/C001_Master.mp4",
+                      "codec":  "h264",
+                      "size":  "3840 x 2160",
+                      "rate":  "30/1",
+                      "thumbs":  [
+                                     "media/thumbs/C001_Master-0.jpg",
+                                     "media/thumbs/C001_Master-1.jpg",
+                                     "media/thumbs/C001_Master-2.jpg",
+                                     "media/thumbs/C001_Master-3.jpg",
+                                     "media/thumbs/C001_Master-4.jpg",
+                                     "media/thumbs/C001_Master-5.jpg"
+                                 ],
+                      "peaks":  [
+
+                                ],
+                      "proxy":  "media/proxies/C001_Master-proxy.mp4"
                   },
                   {
                       "label":  "Drone_04.mp4",
@@ -82,7 +107,8 @@
                                  ],
                       "peaks":  [
 
-                                ]
+                                ],
+                      "proxy":  ""
                   },
                   {
                       "label":  "Score_Loop.wav",

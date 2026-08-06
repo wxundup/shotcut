@@ -270,8 +270,10 @@ ApplicationWindow {
                   media: "A007_Take1" },
                 { label: "B012_Wide",  start: 0.56, width: 0.26, kind: "video",
                   media: "B012_Wide" },
-                { label: "Drone_04",   start: 0.84, width: 0.14, kind: "video",
+                { label: "Drone_04",   start: 0.84, width: 0.07, kind: "video",
                   media: "Drone_04" },
+                { label: "C001_Master", start: 0.92, width: 0.06, kind: "video",
+                  media: "C001_Master" },
             ]},
             { name: "A1", audio: true, muted: false, soloed: false, locked: false,
               volume: 0.82, level: 0.0,
@@ -339,6 +341,15 @@ ApplicationWindow {
 
         // Everything the media index knows, for panels that list it.
         readonly property var mediaItems: mediaLibrary.items
+
+        // Editing runs on proxies where they exist; delivery renders from
+        // the originals regardless, so this is a playback choice only.
+        property bool useProxies: mediaLibrary.useProxies
+        readonly property int proxyCount: mediaLibrary.proxyCount
+        onUseProxiesChanged: mediaLibrary.useProxies = useProxies
+
+        function hasProxy(name) { return mediaLibrary.hasProxy(name) }
+        function originalFor(name) { return mediaLibrary.originalFor(name) }
 
         // Frames decoded from the file at even intervals.
         function thumbnailsFor(name) {

@@ -76,6 +76,14 @@ Rectangle {
                 onToggled: timeline.session.snap = snapSwitch.checked
             }
 
+            Switch {
+                id: proxySwitch
+                text: qsTr("Proxies")
+                visible: timeline.session.proxyCount > 0
+                checked: timeline.session.useProxies
+                onToggled: timeline.session.useProxies = proxySwitch.checked
+            }
+
             Item { Layout.fillWidth: true }
 
             Text {
@@ -302,7 +310,29 @@ Rectangle {
                                         font: Theme.captionFont
                                         color: Theme.textOnAccent
                                         elide: Text.ElideRight
-                                        width: parent.width - Theme.s
+                                        width: parent.width - Theme.s - 20
+                                    }
+
+                                    // A clip playing from a proxy says so,
+                                    // so nobody judges quality from a stand-in.
+                                    Rectangle {
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.rightMargin: Theme.xxs
+                                        width: 16
+                                        height: 12
+                                        radius: 2
+                                        color: Qt.rgba(0, 0, 0, 0.45)
+                                        visible: timeline.session.useProxies
+                                                 && clip.modelData.media !== undefined
+                                                 && timeline.session.hasProxy(clip.modelData.media)
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "P"
+                                            font: Theme.captionFont
+                                            color: Theme.textOnAccent
+                                        }
                                     }
 
                                     // Trim handles appear on hover at either

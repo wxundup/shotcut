@@ -36,12 +36,45 @@ QtObject {
         return []
     }
 
+    // Editing plays proxies where they exist; delivery always renders from
+    // the original, so this choice never reaches the output.
+    property bool useProxies: true
+
     function sourceFor(name) {
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].name !== name)
+                continue
+            if (useProxies && items[i].proxy)
+                return Qt.resolvedUrl(items[i].proxy)
+            return Qt.resolvedUrl(items[i].source)
+        }
+        return ""
+    }
+
+    // The original, whatever the proxy setting — what delivery uses.
+    function originalFor(name) {
         for (var i = 0; i < items.length; i++) {
             if (items[i].name === name)
                 return Qt.resolvedUrl(items[i].source)
         }
         return ""
+    }
+
+    function hasProxy(name) {
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].name === name)
+                return items[i].proxy !== undefined && items[i].proxy !== ""
+        }
+        return false
+    }
+
+    readonly property int proxyCount: {
+        let n = 0
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].proxy)
+                n++
+        }
+        return n
     }
 
     function durationFor(name) {

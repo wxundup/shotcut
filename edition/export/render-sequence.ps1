@@ -54,6 +54,8 @@ $duration = [double]$doc.duration
 $mediaDir = Join-Path (Split-Path -Parent $projectDir) 'media'
 $index = Get-Content (Join-Path $mediaDir 'index.json') -Raw | ConvertFrom-Json
 $sources = @{}
+# Always the original: proxies exist for editing, and a delivery rendered
+# from one would quietly ship the stand-in instead of the master.
 foreach ($m in $index.media) { $sources[$m.name] = Join-Path $mediaDir (Split-Path -Leaf $m.source) }
 
 # Collect the clips that will be rendered, in track order.

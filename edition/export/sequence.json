@@ -104,7 +104,13 @@
           "label": "Drone_04",
           "media": "Drone_04",
           "start": 0.84,
-          "width": 0.14
+          "width": 0.07
+        },
+        {
+          "label": "C001_Master",
+          "media": "C001_Master",
+          "start": 0.92,
+          "width": 0.06
         }
       ]
     },
