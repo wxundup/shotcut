@@ -13,6 +13,9 @@ Rectangle {
     required property var session
     signal shareRequested()
 
+    // Below this the row cannot hold everything; secondary chrome goes first.
+    readonly property bool compact: width < 1320
+
     implicitHeight: 52
     color: Theme.panel
 
@@ -35,6 +38,7 @@ Rectangle {
             text: "EdiTogether"
             font: Theme.titleFont
             color: Theme.textSecondary
+            visible: !toolbar.compact
         }
 
         Rectangle { implicitWidth: 1; Layout.fillHeight: true; Layout.topMargin: Theme.m; Layout.bottomMargin: Theme.m; color: Theme.separator }
@@ -43,14 +47,17 @@ Rectangle {
             text: toolbar.session.projectTitle
             font: Theme.calloutFont
             color: Theme.text
+            elide: Text.ElideRight
+            Layout.maximumWidth: toolbar.compact ? 120 : 260
         }
         Text {
             text: "Autosaved"
             font: Theme.captionFont
             color: Theme.textTertiary
+            visible: !toolbar.compact
         }
 
-        Item { Layout.fillWidth: true }
+        Item { Layout.fillWidth: true; Layout.maximumWidth: Theme.xxl }
 
         // transport
         RowLayout {
@@ -85,19 +92,25 @@ Rectangle {
         }
 
         ScrubBar {
+            // yields space first when the window narrows
             Layout.preferredWidth: 320
+            Layout.minimumWidth: 80
+            Layout.maximumWidth: 320
+            Layout.fillWidth: true
             value: toolbar.session.playhead
             onSeek: (pos) => toolbar.session.playhead = pos
         }
 
         Text {
-            text: toolbar.session.timecode(toolbar.session.playhead * toolbar.session.duration)
+            text: toolbar.compact
+                ? toolbar.session.timecode(toolbar.session.playhead * toolbar.session.duration)
+                : toolbar.session.timecode(toolbar.session.playhead * toolbar.session.duration)
                   + "  /  " + toolbar.session.timecode(toolbar.session.duration)
             font: Theme.timecodeFont
             color: Theme.textSecondary
         }
 
-        Item { Layout.fillWidth: true }
+        Item { Layout.fillWidth: true; Layout.maximumWidth: Theme.xxl }
 
         // session presence
         Row {
@@ -141,6 +154,7 @@ Rectangle {
             onActivated: (index) => toolbar.session.workspace
                 = toolbar.session.workspaces[index]
             Layout.preferredWidth: 260
+            Layout.minimumWidth: 180
         }
     }
 }

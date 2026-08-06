@@ -3,6 +3,7 @@
  */
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import EdiTogether.Theme
 import EdiTogether.Controls
@@ -63,6 +64,13 @@ Rectangle {
             cellWidth: (width - Theme.s) / 2
             cellHeight: cellWidth * 0.62 + 22
             clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            ScrollBar.vertical: ScrollBar {
+                policy: grid.contentHeight > grid.height
+                    ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                width: Theme.scrollbar
+            }
 
             model: ListModel {
                 ListElement { label: "A003_Take2.mp4"; dur: "00:42"; tint: "#3a5f8a" }
