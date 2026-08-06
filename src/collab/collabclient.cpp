@@ -32,6 +32,7 @@ QWebSocket *CollabClient::makeSocket(const QUrl &server, const QJsonObject &hell
 
 void CollabClient::startHost(const QUrl &server, const QString &displayName)
 {
+    leave(); // one session at a time
     QJsonObject hello{
         {"t", "hello"},
         {"name", displayName},
@@ -42,6 +43,7 @@ void CollabClient::startHost(const QUrl &server, const QString &displayName)
 
 void CollabClient::join(const QUrl &server, const QString &invite, const QString &displayName)
 {
+    leave();
     QJsonObject hello{
         {"t", "hello"},
         {"name", displayName},
