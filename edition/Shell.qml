@@ -25,6 +25,11 @@ ApplicationWindow {
         id: mediaLibrary
     }
 
+    // Move the playhead from outside the transport (menu, shortcut, host app).
+    function seek(position) {
+        sessionModel.playhead = Math.max(0, Math.min(1, position))
+    }
+
     // Switch workspaces from outside the toolbar (menu, shortcut, host app).
     function openWorkspace(name) {
         if (sessionModel.workspaces.indexOf(name) !== -1)
@@ -96,6 +101,73 @@ ApplicationWindow {
                   keyframes: [{ time: 0.0, value: 0.0 }, { time: 0.12, value: 1.0 }] },
             ]},
         ]
+
+        // Value of a parameter at the playhead: keyframes interpolate
+        // linearly, otherwise the constant value stands.
+        function paramValue(param, position) {
+            const keys = param.keyframes
+            if (!keys || keys.length === 0)
+                return param.value
+            if (position <= keys[0].time)
+                return keys[0].value
+            if (position >= keys[keys.length - 1].time)
+                return keys[keys.length - 1].value
+            for (var i = 0; i < keys.length - 1; i++) {
+                const a = keys[i]
+                const b = keys[i + 1]
+                if (position >= a.time && position <= b.time) {
+                    const span = b.time - a.time
+                    const t = span <= 0 ? 0 : (position - a.time) / span
+                    return a.value + (b.value - a.value) * t
+                }
+            }
+            return param.value
+        }
+
+        function findParam(effect, name) {
+            for (var i = 0; i < effect.params.length; i++) {
+                if (effect.params[i].name === name)
+                    return effect.params[i]
+            }
+            return null
+        }
+
+        // Resolve the effect stack into the geometry the compositor applies.
+        // Only the selected clip carries the stack in this model; others
+        // render untouched.
+        function effectsFor(clip) {
+            const result = {
+                opacity: 1, scale: 1,
+                positionX: 0.5, positionY: 0.5, rotation: 0,
+            }
+            if (!clip || clip.label !== selectedClip)
+                return result
+
+            // Position within the clip drives keyframed parameters.
+            const local = Math.max(0, Math.min(1,
+                (playhead - clip.start) / Math.max(0.0001, clip.width)))
+
+            for (var i = 0; i < effects.length; i++) {
+                const effect = effects[i]
+                if (!effect.on)
+                    continue
+                if (effect.name === qsTr("Transform")) {
+                    const px = findParam(effect, qsTr("Position X"))
+                    const py = findParam(effect, qsTr("Position Y"))
+                    const sc = findParam(effect, qsTr("Scale"))
+                    const rot = findParam(effect, qsTr("Rotation"))
+                    if (px) result.positionX = paramValue(px, local)
+                    if (py) result.positionY = paramValue(py, local)
+                    if (sc) result.scale = paramValue(sc, local)
+                    if (rot) result.rotation = paramValue(rot, local)
+                } else if (effect.name === qsTr("Opacity")) {
+                    const level = findParam(effect, qsTr("Level"))
+                    if (level)
+                        result.opacity = paramValue(level, local)
+                }
+            }
+            return result
+        }
 
         function withEffects(fn) {
             const next = effects.map(function (e) {
@@ -185,8 +257,10 @@ ApplicationWindow {
         property var tracks: [
             { name: "V2", audio: false, muted: false, soloed: false, locked: false,
               volume: 1.0, level: 0.0, clips: [
-                { label: "Title Intro", start: 0.02, width: 0.12, kind: "title" },
-                { label: "Lower Third", start: 0.30, width: 0.10, kind: "title" },
+                { label: "Title Intro", start: 0.02, width: 0.12, kind: "title",
+                  media: "Drone_04" },
+                { label: "Lower Third", start: 0.30, width: 0.10, kind: "title",
+                  media: "B012_Wide" },
             ]},
             { name: "V1", audio: false, muted: false, soloed: false, locked: false,
               volume: 1.0, level: 0.0, clips: [

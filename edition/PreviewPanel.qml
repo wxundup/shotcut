@@ -63,11 +63,8 @@ Rectangle {
                     anchors.fill: parent
                     playhead: preview.session.playhead
                     grade: preview.session.grade
-                    clip: preview.session.programClip
                     playing: preview.session.playing
-                    source: preview.session.programClip
-                        ? preview.session.sourceFor(preview.session.programClip.media)
-                        : ""
+                    session: preview.session
                 }
 
                 // Action-safe 90% and title-safe 80%, the broadcast defaults.
