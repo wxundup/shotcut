@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QObject>
+#include <QUrl>
 
 class QWebSocket;
 
@@ -34,6 +35,7 @@ signals:
 
 private:
     void onText(const QString &text);
+    QWebSocket *makeSocket(const QUrl &server, const QJsonObject &hello);
 
     QWebSocket *m_socket = nullptr;
     qint64 m_peerId = -1;

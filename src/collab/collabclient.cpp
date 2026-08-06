@@ -8,17 +8,24 @@ CollabClient::CollabClient(QObject *parent)
     : QObject(parent)
 {}
 
-static QWebSocket *makeSocket(QObject *parent, const QUrl &server, const QJsonObject &hello)
+QWebSocket *CollabClient::makeSocket(const QUrl &server, const QJsonObject &hello)
 {
-    auto *socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, parent);
-    QObject::connect(socket, &QWebSocket::connected, parent, [socket, hello]() {
+    auto *socket = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
+    connect(socket, &QWebSocket::connected, this, [socket, hello]() {
         socket->sendTextMessage(
             QString::fromUtf8(QJsonDocument(hello).toJson(QJsonDocument::Compact)));
     });
-    QObject::connect(socket, &QWebSocket::textMessageReceived, parent, [parent](const QString &text) {
-        QMetaObject::invokeMethod(parent, "onText", Qt::QueuedConnection, Q_ARG(QString, text));
+    connect(socket, &QWebSocket::textMessageReceived, this, &CollabClient::onText);
+    connect(socket, &QWebSocket::errorOccurred, this, [this, socket](QAbstractSocket::SocketError) {
+        emit connectionError(socket->errorString());
     });
-    QObject::connect(socket, &QWebSocket::disconnected, socket, &QObject::deleteLater);
+    connect(socket, &QWebSocket::disconnected, this, [this, socket]() {
+        if (m_socket == socket) {
+            m_socket = nullptr;
+            m_peerId = -1;
+        }
+        socket->deleteLater();
+    });
     socket->open(server);
     return socket;
 }
@@ -30,7 +37,7 @@ void CollabClient::startHost(const QUrl &server, const QString &displayName)
         {"name", displayName},
         {"role", "host"},
     };
-    m_socket = makeSocket(this, server, hello);
+    m_socket = makeSocket(server, hello);
 }
 
 void CollabClient::join(const QUrl &server, const QString &invite, const QString &displayName)
@@ -41,7 +48,7 @@ void CollabClient::join(const QUrl &server, const QString &invite, const QString
         {"role", "guest"},
         {"invite", invite},
     };
-    m_socket = makeSocket(this, server, hello);
+    m_socket = makeSocket(server, hello);
 }
 
 void CollabClient::sendSnapshot(const QString &mltXml)
