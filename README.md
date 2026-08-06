@@ -1,3 +1,38 @@
+# EdiTogether
+
+A fork of [Shotcut](https://github.com/mltframework/shotcut) with a rebuilt
+interface and self-hosted collaborative editing. MLT remains the media engine;
+everything below this section is upstream Shotcut's own README.
+
+**What the fork adds**
+
+- **One design system.** `src/qml/modules/EdiTogether` holds the tokens —
+  dark-first neutral surfaces, a single accent, a 4px grid, one easing curve —
+  and the controls built on them. The application palette follows the same
+  tokens, so existing panels and filter UIs inherit the look.
+- **A target shell.** `edition/` is a runnable reference for where the
+  interface is going: unified toolbar with transport and session presence,
+  library, program monitor, inspector, and a multi-track timeline. Open it
+  in the app from **View > Preview EdiTogether Interface**, or standalone:
+  `qml -I src/qml/modules -I edition edition/Shell.qml`.
+- **Local collaboration.** `collab/` is a self-hosted relay: one machine runs
+  it, peers join over an invite code, no cloud. Messages are bounded, the
+  operation vocabulary is closed, and origins are stamped by the relay.
+  **Collaborate > Start Session** prints an invite code; **Join Session**
+  takes one.
+
+**Working on it**
+
+```
+powershell -ExecutionPolicy Bypass -File scripts/check-editogether.ps1
+```
+
+Runs qmllint over the design system and shell, clang-format over the
+EdiTogether C++, and the relay tests. See `EDITION-ARCHITECTURE.md` for the
+full layout and what is still to build.
+
+---
+
 [![build-shotcut-linux](https://github.com/mltframework/shotcut/workflows/build-shotcut-linux/badge.svg)](https://github.com/mltframework/shotcut/actions?query=workflow%3Abuild-shotcut-linux+is%3Acompleted+branch%3Amaster)
 [![build-shotcut-macos](https://github.com/mltframework/shotcut/workflows/build-shotcut-macos/badge.svg)](https://github.com/mltframework/shotcut/actions?query=workflow%3Abuild-shotcut-macos+is%3Acompleted+branch%3Amaster)
 [![build-shotcut-windows](https://github.com/mltframework/shotcut/workflows/build-shotcut-windows/badge.svg)](https://github.com/mltframework/shotcut/actions?query=workflow%3Abuild-shotcut-windows+is%3Acompleted+branch%3Amaster)
