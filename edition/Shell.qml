@@ -26,9 +26,11 @@ ApplicationWindow {
         property bool playing: false
         property real playhead: 0.23          // 0..1 of timeline
         property real duration: 96.0          // seconds
-        property string workspace: "edit"
+        readonly property var workspaces: ["Edit", "Color", "Audio", "Deliver"]
+        property string workspace: "Edit"
         property bool snap: true
         property string selectedClip: "A007_Take1"
+        property string inviteCode: ""
 
         property var collaborators: [
             { name: "You",      initials: "YJ", hue: "#0a84ff" },
@@ -70,6 +72,18 @@ ApplicationWindow {
         }
     }
 
+    // ponytail: TextEdit.copy() is the clipboard, no extra type needed
+    TextEdit {
+        id: shellClipboard
+        visible: false
+        onTextChanged: {
+            if (text !== "") {
+                selectAll()
+                copy()
+            }
+        }
+    }
+
     // playback advances the playhead at 1x
     Timer {
         running: sessionModel.playing
@@ -99,6 +113,14 @@ ApplicationWindow {
         Toolbar {
             Layout.fillWidth: true
             session: sessionModel
+            // In the app this hands off to CollabSession; standalone it
+            // stands in for a hosted session.
+            onShareRequested: {
+                if (sessionModel.inviteCode === "")
+                    sessionModel.inviteCode = "K4P2XM"
+                else
+                    shellClipboard.text = sessionModel.inviteCode
+            }
         }
 
         RowLayout {

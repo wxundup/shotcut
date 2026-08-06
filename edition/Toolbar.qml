@@ -11,6 +11,7 @@ Rectangle {
     id: toolbar
 
     required property var session
+    signal shareRequested()
 
     implicitHeight: 52
     color: Theme.panel
@@ -126,13 +127,19 @@ Rectangle {
 
         Button {
             kind: "primary"
-            text: "Share"
-            tip: "Copy invite code for this session"
+            text: toolbar.session.inviteCode !== ""
+                ? toolbar.session.inviteCode : qsTr("Share")
+            tip: toolbar.session.inviteCode !== ""
+                ? qsTr("Click to copy the invite code")
+                : qsTr("Start a session and copy its invite code")
+            onClicked: toolbar.shareRequested()
         }
 
         Segmented {
-            items: ["Edit", "Color", "Audio", "Deliver"]
-            currentIndex: 0
+            items: toolbar.session.workspaces
+            currentIndex: toolbar.session.workspaces.indexOf(toolbar.session.workspace)
+            onActivated: (index) => toolbar.session.workspace
+                = toolbar.session.workspaces[index]
             Layout.preferredWidth: 260
         }
     }
