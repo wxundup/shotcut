@@ -3,6 +3,7 @@
  */
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import EdiTogether.Theme
 import EdiTogether.Controls
@@ -17,6 +18,15 @@ Rectangle {
     readonly property int headerWidth: 116
     readonly property int trackHeight: Theme.trackHeight
     readonly property int rulerHeight: 24
+
+    readonly property real zoom: zoomSlider.value
+    // Width the whole sequence occupies at the current zoom.
+    readonly property real laneWidth:
+        Math.max(1, (width - headerWidth) * zoom)
+
+    // Ruler divisions stay readable: more of them as the lane grows.
+    readonly property int rulerDivisions:
+        Math.max(4, Math.min(48, Math.round(laneWidth / 130)))
 
     Rectangle {
         anchors.left: parent.left
@@ -66,211 +76,286 @@ Rectangle {
             Item { Layout.fillWidth: true }
 
             Text {
-                text: "Zoom"
+                text: qsTr("Zoom")
                 font: Theme.captionFont
                 color: Theme.textTertiary
             }
 
             Slider {
+                id: zoomSlider
                 Layout.preferredWidth: 140
-                from: 0; to: 1
-                value: 0.35
+                from: 1.0
+                to: 8.0
+                value: 1.0
+            }
+
+            Text {
+                text: Math.round(timeline.zoom * 100) + "%"
+                font: Theme.timecodeFont
+                color: Theme.textTertiary
             }
         }
 
-        // ---- ruler + tracks ----
+        // ---- heads (fixed) + lane (scrolls with zoom) ----
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
 
-            // ruler
-            Row {
-                x: timeline.headerWidth
-                y: 0
-                spacing: 0
-
-                Repeater {
-                    model: 12
-
-                    Item {
-                        id: rulerItem
-                        required property int index
-                        width: (timeline.width - timeline.headerWidth) / 12
-                        height: timeline.rulerHeight
-
-                        Rectangle { width: 1; height: 6; color: Theme.textTertiary; anchors.bottom: parent.bottom }
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.leftMargin: Theme.xs
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: timeline.session.timecode(rulerItem.index * timeline.session.duration / 12)
-                            font: Theme.captionFont
-                            color: Theme.textTertiary
-                        }
-                    }
-                }
-            }
-
-            // track stack
+            // Track heads stay put while the lane scrolls beneath the ruler.
             Column {
+                id: headColumn
                 x: 0
                 y: timeline.rulerHeight
-                width: parent.width
+                width: timeline.headerWidth
                 spacing: Theme.xxs
 
                 Repeater {
                     model: timeline.session.tracks
 
                     Rectangle {
-                        id: track
+                        id: headRow
                         required property var modelData
                         required property int index
-                        width: timeline.width
+                        width: timeline.headerWidth
                         height: timeline.trackHeight
-                        radius: Theme.premiere ? 0 : Theme.xs
                         color: index % 2 === 0 ? Theme.trackEven : Theme.trackOdd
 
                         TrackHead {
-                            width: timeline.headerWidth - Theme.xs
+                            width: parent.width - Theme.xs
                             height: parent.height
-                            name: track.modelData.name
-                            audio: track.modelData.audio
-                            muted: track.modelData.muted
-                            soloed: track.modelData.soloed
-                            locked: track.modelData.locked
-                            volume: track.modelData.volume
-                            level: track.modelData.level
+                            name: headRow.modelData.name
+                            audio: headRow.modelData.audio
+                            muted: headRow.modelData.muted
+                            soloed: headRow.modelData.soloed
+                            locked: headRow.modelData.locked
+                            volume: headRow.modelData.volume
+                            level: headRow.modelData.level
                             onMuteToggled: timeline.session.setTrackProperty(
-                                track.index, "muted", !track.modelData.muted)
+                                headRow.index, "muted", !headRow.modelData.muted)
                             onSoloToggled: timeline.session.setTrackProperty(
-                                track.index, "soloed", !track.modelData.soloed)
+                                headRow.index, "soloed", !headRow.modelData.soloed)
                             onLockToggled: timeline.session.setTrackProperty(
-                                track.index, "locked", !track.modelData.locked)
+                                headRow.index, "locked", !headRow.modelData.locked)
                             onVolumeRequested: (value) => timeline.session.setTrackProperty(
-                                track.index, "volume", value)
-                        }
-
-                        // clips
-                        Repeater {
-                            model: track.modelData.clips
-
-                            Rectangle {
-                                id: clip
-                                required property var modelData
-                                readonly property bool selected:
-                                    timeline.session.selectedClip === modelData.label
-                                readonly property color base:
-                                    modelData.kind === "audio" ? Theme.clipAudio
-                                    : modelData.kind === "title" ? Theme.clipTitle
-                                    : Theme.clipVideo
-
-                                x: timeline.headerWidth
-                                   + modelData.start * (timeline.width - timeline.headerWidth)
-                                y: Theme.xxs
-                                width: Math.max(24, modelData.width
-                                       * (timeline.width - timeline.headerWidth) - Theme.xxs)
-                                height: parent.height - Theme.xs
-                                radius: Theme.radiusControl
-                                clip: true
-                                color: clipMouse.containsMouse ? Qt.lighter(base, 1.12) : base
-                                opacity: track.modelData.locked ? 0.55
-                                    : clip.selected ? 1.0 : 0.92
-                                border.width: clip.selected ? 2 : 1
-                                border.color: clip.selected ? Theme.text : Qt.lighter(base, 1.25)
-
-                                Behavior on color { ColorAnimation { duration: Theme.fast } }
-
-                                // Video clips show sampled frames; audio clips
-                                // show their peaks. Neither invents content.
-                                Filmstrip {
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    anchors.topMargin: 14
-                                    anchors.bottom: parent.bottom
-                                    anchors.margins: 1
-                                    visible: clip.modelData.kind === "video"
-                                    frames: timeline.session.thumbnailsFor(clip.modelData.label)
-                                }
-
-                                Waveform {
-                                    anchors.fill: parent
-                                    anchors.topMargin: 12
-                                    anchors.margins: 2
-                                    visible: clip.modelData.kind === "audio"
-                                    gain: track.modelData.muted ? 0.25 : track.modelData.volume
-                                    peaks: clip.modelData.kind === "audio"
-                                        ? timeline.session.peaksFor(
-                                            clip.modelData.seed,
-                                            Math.max(8, Math.floor(clip.width / 3)))
-                                        : []
-                                }
-
-                                // label sits above the content with a scrim
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    height: 14
-                                    color: Qt.darker(clip.base, 1.35)
-                                    opacity: 0.85
-                                }
-
-                                Text {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
-                                    anchors.leftMargin: Theme.xs
-                                    height: 14
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: clip.modelData.label
-                                    font: Theme.captionFont
-                                    color: Theme.textOnAccent
-                                    elide: Text.ElideRight
-                                    width: parent.width - Theme.s
-                                }
-
-                                MouseArea {
-                                    id: clipMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    enabled: !track.modelData.locked
-                                    onClicked: timeline.session.selectedClip = clip.modelData.label
-                                }
-                            }
+                                headRow.index, "volume", value)
                         }
                     }
                 }
             }
 
-            // playhead
             Rectangle {
-                x: timeline.headerWidth
-                   + timeline.session.playhead * (timeline.width - timeline.headerWidth) - 1
-                y: 0
-                width: 2
+                x: timeline.headerWidth - 1
+                width: 1
                 height: parent.height
-                color: Theme.playhead
-
-                Rectangle {
-                    x: -4
-                    y: 0
-                    width: 10
-                    height: 10
-                    radius: 2
-                    rotation: 45
-                    color: Theme.playhead
-                }
+                color: Theme.separator
             }
 
-            // scrub over tracks
-            MouseArea {
-                anchors.fill: parent
-                onPressed: (mouse) => {
-                    const usable = timeline.width - timeline.headerWidth
-                    timeline.session.playhead = Math.min(1, Math.max(0,
-                        (mouse.x - timeline.headerWidth) / usable))
+            Flickable {
+                id: lane
+                x: timeline.headerWidth
+                width: parent.width - timeline.headerWidth
+                height: parent.height
+                contentWidth: timeline.laneWidth
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+
+                ScrollBar.horizontal: ScrollBar {
+                    policy: lane.contentWidth > lane.width
+                        ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                    height: Theme.scrollbar
+                }
+
+                // ruler
+                Row {
+                    y: 0
+                    spacing: 0
+
+                    Repeater {
+                        model: timeline.rulerDivisions
+
+                        Item {
+                            id: rulerItem
+                            required property int index
+                            width: timeline.laneWidth / timeline.rulerDivisions
+                            height: timeline.rulerHeight
+
+                            Rectangle {
+                                width: 1
+                                height: 6
+                                color: Theme.textTertiary
+                                anchors.bottom: parent.bottom
+                            }
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.leftMargin: Theme.xs
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: timeline.session.timecode(
+                                    rulerItem.index * timeline.session.duration
+                                    / timeline.rulerDivisions)
+                                font: Theme.captionFont
+                                color: Theme.textTertiary
+                            }
+                        }
+                    }
+                }
+
+                // track lanes
+                Column {
+                    y: timeline.rulerHeight
+                    width: timeline.laneWidth
+                    spacing: Theme.xxs
+
+                    Repeater {
+                        model: timeline.session.tracks
+
+                        Rectangle {
+                            id: track
+                            required property var modelData
+                            required property int index
+                            width: timeline.laneWidth
+                            height: timeline.trackHeight
+                            color: index % 2 === 0 ? Theme.trackEven : Theme.trackOdd
+
+                            Repeater {
+                                model: track.modelData.clips
+
+                                Rectangle {
+                                    id: clip
+                                    required property var modelData
+                                    readonly property bool selected:
+                                        timeline.session.selectedClip === modelData.label
+                                    readonly property color base:
+                                        modelData.kind === "audio" ? Theme.clipAudio
+                                        : modelData.kind === "title" ? Theme.clipTitle
+                                        : Theme.clipVideo
+
+                                    x: modelData.start * timeline.laneWidth
+                                    y: Theme.xxs
+                                    width: Math.max(24, modelData.width * timeline.laneWidth
+                                                        - Theme.xxs)
+                                    height: parent.height - Theme.xs
+                                    radius: Theme.radiusControl
+                                    clip: true
+                                    color: clipMouse.containsMouse ? Qt.lighter(base, 1.12) : base
+                                    opacity: track.modelData.locked ? 0.55
+                                        : clip.selected ? 1.0 : 0.92
+                                    border.width: clip.selected ? 2 : 1
+                                    border.color: clip.selected
+                                        ? Theme.text : Qt.lighter(base, 1.25)
+
+                                    Behavior on color { ColorAnimation { duration: Theme.fast } }
+
+                                    // Video clips show sampled frames; audio
+                                    // clips show their peaks. Neither invents
+                                    // content it was not given.
+                                    Filmstrip {
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        anchors.topMargin: 14
+                                        anchors.bottom: parent.bottom
+                                        anchors.margins: 1
+                                        visible: clip.modelData.kind === "video"
+                                        frames: timeline.session.thumbnailsFor(
+                                            clip.modelData.label)
+                                    }
+
+                                    Waveform {
+                                        anchors.fill: parent
+                                        anchors.topMargin: 12
+                                        anchors.margins: 2
+                                        visible: clip.modelData.kind === "audio"
+                                        gain: track.modelData.muted
+                                            ? 0.25 : track.modelData.volume
+                                        peaks: clip.modelData.kind === "audio"
+                                            ? timeline.session.peaksFor(
+                                                clip.modelData.seed,
+                                                Math.max(8, Math.floor(clip.width / 3)))
+                                            : []
+                                    }
+
+                                    // label sits above the content with a scrim
+                                    Rectangle {
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        height: 14
+                                        color: Qt.darker(clip.base, 1.35)
+                                        opacity: 0.85
+                                    }
+
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.top: parent.top
+                                        anchors.leftMargin: Theme.xs
+                                        height: 14
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: clip.modelData.label
+                                        font: Theme.captionFont
+                                        color: Theme.textOnAccent
+                                        elide: Text.ElideRight
+                                        width: parent.width - Theme.s
+                                    }
+
+                                    MouseArea {
+                                        id: clipMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        enabled: !track.modelData.locked
+                                        onClicked: timeline.session.selectedClip
+                                            = clip.modelData.label
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // playhead rides the lane so it stays on its frame when zoomed
+                Rectangle {
+                    x: timeline.session.playhead * timeline.laneWidth - 1
+                    y: 0
+                    width: 2
+                    height: lane.height
+                    color: Theme.playhead
+
+                    Rectangle {
+                        x: -4
+                        y: 0
+                        width: 10
+                        height: 10
+                        radius: 2
+                        rotation: 45
+                        color: Theme.playhead
+                    }
+                }
+
+                // scrub anywhere in the lane; Ctrl+wheel zooms about the pointer
+                MouseArea {
+                    anchors.fill: parent
+                    z: -1
+                    onPressed: (mouse) => {
+                        timeline.session.playhead = Math.min(1, Math.max(0,
+                            mouse.x / timeline.laneWidth))
+                    }
+                    onWheel: (wheel) => {
+                        if (!(wheel.modifiers & Qt.ControlModifier)) {
+                            wheel.accepted = false
+                            return
+                        }
+                        // Keep the frame under the pointer fixed while scaling.
+                        const anchor = (lane.contentX + wheel.x) / timeline.laneWidth
+                        const step = wheel.angleDelta.y > 0 ? 1.25 : 1 / 1.25
+                        zoomSlider.value = Math.max(zoomSlider.from,
+                            Math.min(zoomSlider.to, zoomSlider.value * step))
+                        lane.contentX = Math.max(0, Math.min(
+                            Math.max(0, timeline.laneWidth - lane.width),
+                            anchor * timeline.laneWidth - wheel.x))
+                    }
                 }
             }
         }
