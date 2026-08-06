@@ -94,6 +94,9 @@ void CollabClient::onText(const QString &text)
 {
     const QJsonObject msg = QJsonDocument::fromJson(text.toUtf8()).object();
     const QString t = msg.value("t").toString();
+    // Nothing but the welcome (or a refusal) is meaningful before we are a peer.
+    if (m_peerId < 0 && t != "welcome" && t != "error")
+        return;
     if (t == "welcome") {
         m_peerId = qint64(msg.value("peer_id").toDouble());
         emit welcomed(msg.value("room_code").toString(),
