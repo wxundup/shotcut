@@ -12,6 +12,7 @@ add_executable(shotcut WIN32 MACOSX_BUNDLE
   commands/undohelper.cpp commands/undohelper.h
   collab/collabclient.cpp collab/collabclient.h
   collab/collabsession.cpp collab/collabsession.h
+  collab/projectbridge.cpp collab/projectbridge.h
   edition.qrc
   controllers/addonmetadataparser.cpp controllers/addonmetadataparser.h
   controllers/addonqmlgenerator.cpp controllers/addonqmlgenerator.h

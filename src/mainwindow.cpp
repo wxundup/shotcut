@@ -22,6 +22,7 @@
 #include "actions.h"
 #include "autosavefile.h"
 #include "collab/collabsession.h"
+#include "collab/projectbridge.h"
 #include "commands/playlistcommands.h"
 #include "controllers/filtercontroller.h"
 #include "controllers/scopecontroller.h"
@@ -378,6 +379,17 @@ bool MainWindow::createEditionDock()
     auto *engine = QmlUtilities::sharedEngine();
     engine->addImportPath(QStringLiteral("qrc:/editogether/modules"));
 
+    // The interface reads the open document through this. It is refreshed
+    // whenever the project changes, so the dock shows the real edit rather
+    // than the fixture the shell was developed against.
+    if (!m_projectBridge) {
+        m_projectBridge = new ProjectBridge(this);
+        connect(this, &MainWindow::producerOpened, m_projectBridge, &ProjectBridge::refresh);
+        connect(m_undoStack, &QUndoStack::indexChanged, m_projectBridge, [this]() {
+            m_projectBridge->refresh();
+        });
+    }
+
     // EditorRoot is an Item: QQuickWidget cannot host a window, which is
     // why the interface is separated from the standalone Shell window.
     auto *view = new QQuickWidget(engine, this);
@@ -398,6 +410,12 @@ bool MainWindow::createEditionDock()
                                  .arg(detail));
         return false;
     }
+
+    // Hand the interface the open document. Assigned on the root object
+    // rather than through a context property, so the QML declares what it
+    // needs instead of depending on a global being present.
+    if (auto *rootObject = view->rootObject())
+        rootObject->setProperty("project", QVariant::fromValue(m_projectBridge));
 
     m_editionDock = new QDockWidget(tr("EdiTogether"), this);
     m_editionDock->setObjectName(QStringLiteral("editionDock"));

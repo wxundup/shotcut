@@ -18,6 +18,12 @@ Item {
     implicitWidth: 1440
     implicitHeight: 900
 
+    // Set by a host application to the open document; null when the
+    // interface runs standalone, in which case the fixture stands in.
+    // The application assigns this after creating the view, so the
+    // interface has no dependency on a context property existing.
+    property var project: null
+
     // Real media: durations, codecs, decoded thumbnails and PCM peaks read
     // from media/index.json.
     MediaLibrary {
@@ -39,10 +45,15 @@ Item {
     QtObject {
         id: sessionModel
 
-        property string projectTitle: "Untitled Project"
+        // When the application hosts this, `project` is the open document.
+        // Standalone there is no host, and the fixture below stands in so
+        // the interface can still be run on its own.
+        readonly property bool hosted: root.project !== null && root.project.hasProject
+
+        property string projectTitle: hosted ? root.project.projectTitle : "Untitled Project"
         property bool playing: false
         property real playhead: 0.23          // 0..1 of timeline
-        property real duration: 96.0          // seconds
+        property real duration: hosted ? root.project.duration : 96.0
         readonly property var workspaces: ["Edit", "Color", "Audio", "Deliver"]
         property string workspace: "Edit"
         property bool snap: true
@@ -262,7 +273,10 @@ Item {
         // Tracks carry their own state so the heads are real controls, not
         // decoration. Audio clips carry peak arrays; a real project would
         // fill these from PCM analysis rather than the stand-in below.
-        property var tracks: [
+        // The open document when hosted; the fixture otherwise.
+        property var tracks: hosted ? root.project.tracks : fixtureTracks
+
+        readonly property var fixtureTracks: [
             { name: "V2", audio: false, muted: false, soloed: false, locked: false,
               volume: 1.0, level: 0.0, clips: [
                 { label: "Title Intro", start: 0.02, width: 0.12, kind: "title",

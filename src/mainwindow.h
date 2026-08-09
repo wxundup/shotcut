@@ -58,6 +58,7 @@ class SubtitlesDock;
 class ScreenCapture;
 class HdrPreviewWindow;
 class CollabSession;
+class ProjectBridge;
 
 class MainWindow : public QMainWindow
 {
@@ -200,6 +201,7 @@ private:
     QUndoStack *m_undoStack;
     CollabSession *m_collab = nullptr;
     QDockWidget *m_editionDock = nullptr;
+    ProjectBridge *m_projectBridge = nullptr;
     QDockWidget *m_historyDock;
     QActionGroup *m_profileGroup;
     QActionGroup *m_externalGroup;
