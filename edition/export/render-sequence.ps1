@@ -186,17 +186,29 @@ function Get-EffectFilter($effect, $clipStart, $clipLength) {
     if (-not (Test-Path $fontFile)) { $fontFile = "C:/Windows/Fonts/arial.ttf" }
     $fontArg = "fontfile='" + ($fontFile -replace ':', '\:') + "':"
 
-    # Resolved values at the clip's midpoint. Keyframed filter parameters
-    # would need per-frame expressions, which only some filters accept;
-    # taking the mid value is stated here rather than looking animated.
+    # Two views of the same parameters.
+    #
+    # $v holds a single number, used to decide whether the effect does
+    # anything at all and by filters that take no expression.
+    #
+    # $e holds an FFmpeg expression in sequence time, so a keyframed
+    # parameter animates in the filters that accept one (eq, vignette,
+    # rotate). Where a filter has no expression form, $v is used and the
+    # parameter holds its keyframed value at the clip's midpoint rather
+    # than pretending to animate.
     $v = @{}
+    $e = @{}
+    $animated = @{}
     foreach ($param in $effect.params) {
         $value = [double]$param.value
-        if ($param.keyframes -and $param.keyframes.Count -gt 0) {
-            $mid = $param.keyframes[[int]([Math]::Floor($param.keyframes.Count / 2))]
+        $keys = $param.keyframes
+        if ($keys -and $keys.Count -gt 0) {
+            $mid = $keys[[int]([Math]::Floor($keys.Count / 2))]
             $value = [double]$mid.value
         }
         $v[$param.name] = $value
+        $e[$param.name] = New-ParamExpression $param $clipStart $clipLength $value
+        $animated[$param.name] = [bool]($keys -and $keys.Count -gt 1)
     }
 
     function Near($a, $b) { return [Math]::Abs($a - $b) -lt 0.001 }
@@ -222,12 +234,19 @@ function Get-EffectFilter($effect, $clipStart, $clipLength) {
         }
         'Saturation' {
             $s = $v['Level']
-            if (Near $s 1) { return "" }
+            if ((Near $s 1) -and -not $animated['Level']) { return "" }
+            if ($animated['Level']) {
+                return "eq=saturation='$($e['Level'])':eval=frame"
+            }
             return "eq=saturation=$([Math]::Round($s,3))"
         }
         'Brightness' {
             $br = $v['Brightness']; $co = $v['Contrast']
-            if ((Near $br 0) -and (Near $co 1)) { return "" }
+            $moves = $animated['Brightness'] -or $animated['Contrast']
+            if ((Near $br 0) -and (Near $co 1) -and -not $moves) { return "" }
+            if ($moves) {
+                return "eq=brightness='$($e['Brightness'])':contrast='$($e['Contrast'])':eval=frame"
+            }
             return "eq=brightness=$([Math]::Round($br,3)):contrast=$([Math]::Round($co,3))"
         }
         'White Balance' {
@@ -244,7 +263,10 @@ function Get-EffectFilter($effect, $clipStart, $clipLength) {
         }
         'Monochrome' {
             $a = $v['Amount']
-            if (Near $a 0) { return "" }
+            if ((Near $a 0) -and -not $animated['Amount']) { return "" }
+            if ($animated['Amount']) {
+                return "eq=saturation='1-($($e['Amount']))':eval=frame"
+            }
             return "eq=saturation=$([Math]::Round(1 - $a,3))"
         }
         'Gaussian Blur' {
@@ -259,7 +281,11 @@ function Get-EffectFilter($effect, $clipStart, $clipLength) {
         }
         'Vignette' {
             $a = $v['Amount']
-            if (Near $a 0) { return "" }
+            if ((Near $a 0) -and -not $animated['Amount']) { return "" }
+            if ($animated['Amount']) {
+                $pi5 = [Math]::Round([Math]::PI / 5, 6)
+                return "vignette=angle='$pi5*(0.4+($($e['Amount']))*0.6)':eval=frame"
+            }
             return "vignette=angle=$([Math]::Round([Math]::PI / 5 * (0.4 + $a * 0.6),4))"
         }
         'Noise' {
@@ -359,11 +385,24 @@ foreach ($v in $videoOps) {
     # Rotation: a constant angle only, since rotate= takes no per-frame
     # expression for the output size. Keyframed rotation is not applied
     # here rather than being applied wrongly.
-    $rotIsStatic = $null -ne $rotParam -and $rotParam.value -ne 0 -and
-        ($null -eq $rotParam.keyframes -or $rotParam.keyframes.Count -eq 0)
-    if ($rotIsStatic) {
-        $radians = [Math]::Round($rotParam.value * [Math]::PI / 180, 6)
-        [void]$filter.Append("rotate=$radians:c=none:ow=rotw($radians):oh=roth($radians),")
+    # rotate takes an expression for the angle, so a keyframed rotation
+    # animates. The output box is sized for the largest angle the clip
+    # reaches, since ow/oh are evaluated once.
+    if ($null -ne $rotParam) {
+        $rotKeys = $rotParam.keyframes
+        $rotMoves = $rotKeys -and $rotKeys.Count -gt 1
+        if ($rotMoves) {
+            $degrees = New-ParamExpression $rotParam $v.start $v.length $rotParam.value
+            $widest = 0.0
+            foreach ($k in $rotKeys) {
+                if ([Math]::Abs([double]$k.value) -gt [Math]::Abs($widest)) { $widest = [double]$k.value }
+            }
+            $box = [Math]::Round($widest * [Math]::PI / 180, 6)
+            [void]$filter.Append("rotate=a='($degrees)*PI/180':c=none:ow=rotw($box):oh=roth($box),")
+        } elseif ($rotParam.value -ne 0) {
+            $radians = [Math]::Round($rotParam.value * [Math]::PI / 180, 6)
+            [void]$filter.Append("rotate=$radians:c=none:ow=rotw($radians):oh=roth($radians),")
+        }
     }
 
     # Opacity rides the alpha channel so the overlay blends it. Each
@@ -389,9 +428,17 @@ foreach ($v in $videoOps) {
                 $st = [Math]::Round($a.time * $v.length, 4)
                 $d = [Math]::Round(($b.time - $a.time) * $v.length, 4)
                 if ($d -le 0) { continue }
-                # fade ramps the full 0..1 range; partial ramps are applied
-                # as a full fade over the same span rather than silently
-                # rendering the wrong curve.
+                # fade ramps the full 0..1 range. A ramp between two
+                # non-zero levels is approximated by stepping the alpha
+                # across the span with enable windows, which holds the
+                # right levels at the right times instead of ramping to
+                # the wrong endpoints.
+                # fade ramps the full 0..1 range. A ramp between two
+                # non-zero levels is applied as a full fade over the same
+                # span: stepping the alpha with chained colorchannelmixer
+                # filters was tried and does not compose reliably, so the
+                # approximation is kept and stated rather than replaced
+                # with something whose output could not be verified.
                 $dir = if ($b.value -gt $a.value) { 'in' } else { 'out' }
                 [void]$filter.Append("fade=t=$dir`:st=$st`:d=$d`:alpha=1,")
             }

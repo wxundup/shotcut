@@ -1,0 +1,312 @@
+{
+  "title": "Untitled Project",
+  "duration": 96.0,
+  "tracks": [
+    {
+      "name": "V2",
+      "audio": false,
+      "volume": 1.0,
+      "clips": [
+        {
+          "label": "Title Intro",
+          "media": "Drone_04",
+          "start": 0.02,
+          "width": 0.12
+        },
+        {
+          "label": "Lower Third",
+          "media": "B012_Wide",
+          "start": 0.3,
+          "width": 0.1,
+          "effects": [
+            {
+              "name": "Transform",
+              "on": true,
+              "params": [
+                {
+                  "name": "Scale",
+                  "value": 0.45,
+                  "keyframes": []
+                },
+                {
+                  "name": "Position X",
+                  "value": 0.72,
+                  "keyframes": []
+                },
+                {
+                  "name": "Position Y",
+                  "value": 0.74,
+                  "keyframes": []
+                },
+                {
+                  "name": "Rotation",
+                  "value": 0,
+                  "keyframes": []
+                }
+              ]
+            },
+            {
+              "name": "Opacity",
+              "on": true,
+              "params": [
+                {
+                  "name": "Level",
+                  "value": 1,
+                  "keyframes": [
+                    {
+                      "time": 0.0,
+                      "value": 0.0
+                    },
+                    {
+                      "time": 0.25,
+                      "value": 1.0
+                    },
+                    {
+                      "time": 0.75,
+                      "value": 1.0
+                    },
+                    {
+                      "time": 1.0,
+                      "value": 0.0
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "V1",
+      "audio": false,
+      "volume": 1.0,
+      "clips": [
+        {
+          "label": "A003_Take2",
+          "media": "A003_Take2",
+          "start": 0.0,
+          "width": 0.22,
+          "effects": [
+            {
+              "name": "Gaussian Blur",
+              "on": true,
+              "params": [
+                {
+                  "name": "Radius",
+                  "value": 12,
+                  "keyframes": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "A007_Take1",
+          "media": "A007_Take1",
+          "start": 0.24,
+          "width": 0.3,
+          "effects": [
+            {
+              "name": "Transform",
+              "on": true,
+              "params": [
+                {
+                  "name": "Scale",
+                  "value": 0.6,
+                  "keyframes": []
+                },
+                {
+                  "name": "Position X",
+                  "value": 0.5,
+                  "keyframes": []
+                },
+                {
+                  "name": "Position Y",
+                  "value": 0.5,
+                  "keyframes": []
+                },
+                {
+                  "name": "Rotation",
+                  "value": 0,
+                  "keyframes": [
+                    {
+                      "time": 0.0,
+                      "value": 0
+                    },
+                    {
+                      "time": 1.0,
+                      "value": 25
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Opacity",
+              "on": true,
+              "params": [
+                {
+                  "name": "Level",
+                  "value": 1,
+                  "keyframes": [
+                    {
+                      "time": 0.0,
+                      "value": 0.3
+                    },
+                    {
+                      "time": 1.0,
+                      "value": 0.9
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "B012_Wide",
+          "media": "B012_Wide",
+          "start": 0.56,
+          "width": 0.26,
+          "effects": [
+            {
+              "name": "Saturation",
+              "on": true,
+              "params": [
+                {
+                  "name": "Level",
+                  "value": 1,
+                  "keyframes": [
+                    {
+                      "time": 0.0,
+                      "value": 0.0
+                    },
+                    {
+                      "time": 0.5,
+                      "value": 2.5
+                    },
+                    {
+                      "time": 1.0,
+                      "value": 0.0
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Drone_04",
+          "media": "Drone_04",
+          "start": 0.84,
+          "width": 0.07
+        },
+        {
+          "label": "C001_Master",
+          "media": "C001_Master",
+          "start": 0.92,
+          "width": 0.06
+        }
+      ]
+    },
+    {
+      "name": "A1",
+      "audio": true,
+      "volume": 0.82,
+      "clips": [
+        {
+          "label": "VO_Final",
+          "media": "VO_Final",
+          "start": 0.04,
+          "width": 0.4
+        },
+        {
+          "label": "VO_Final_2",
+          "media": "VO_Final",
+          "start": 0.48,
+          "width": 0.34
+        }
+      ],
+      "dsp": {
+        "eqOn": true,
+        "bands": [
+          {
+            "type": "lowshelf",
+            "freq": 110,
+            "gain": -6.0,
+            "q": 0.7,
+            "on": true
+          },
+          {
+            "type": "peaking",
+            "freq": 180,
+            "gain": -9.0,
+            "q": 1.0,
+            "on": true
+          },
+          {
+            "type": "highshelf",
+            "freq": 9000,
+            "gain": 3.0,
+            "q": 0.7,
+            "on": true
+          }
+        ],
+        "compOn": true,
+        "threshold": -20,
+        "ratio": 3.5,
+        "attack": 12,
+        "release": 180,
+        "limitOn": true,
+        "ceiling": -1.0
+      }
+    },
+    {
+      "name": "A2",
+      "audio": true,
+      "volume": 0.55,
+      "clips": [
+        {
+          "label": "Score_Loop",
+          "media": "Score_Loop",
+          "start": 0.0,
+          "width": 0.98
+        }
+      ],
+      "dsp": {
+        "eqOn": true,
+        "bands": [
+          {
+            "type": "lowshelf",
+            "freq": 90,
+            "gain": 3.0,
+            "q": 0.7,
+            "on": true
+          },
+          {
+            "type": "peaking",
+            "freq": 500,
+            "gain": -4.0,
+            "q": 1.4,
+            "on": true
+          },
+          {
+            "type": "highshelf",
+            "freq": 10000,
+            "gain": 1.0,
+            "q": 0.7,
+            "on": true
+          }
+        ],
+        "compOn": false,
+        "threshold": -18,
+        "ratio": 4,
+        "attack": 20,
+        "release": 250,
+        "limitOn": true,
+        "ceiling": -1.5
+      }
+    }
+  ]
+}

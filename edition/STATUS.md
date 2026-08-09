@@ -22,6 +22,8 @@ reading the code. Re-run the checks yourself with:
 | Collaboration | Two peers through the running relay binary: project handed over on join, a trim by one arrives at the other, room closes when the host leaves |
 | Installer | 164.8 MB wizard; silent install of 1417 files, the installed copy launches with Qt removed from PATH, uninstall exits clean |
 | Timeline interaction | Clip drag, trim handles, snapping, zoom about the pointer |
+| Keyframed effects | Animated saturation measured against a bypassed render at matching times: 22.2 / 98.0 / 27.1 versus 46.5 / 40.7 / 53.7 — low, high, low, tracking the keyframes |
+| Keyframed rotation | Renders as an angle expression ramping 0->25 degrees, not a constant |
 
 Each test was checked by breaking the behaviour it covers and confirming it
 fails — a test that cannot fail proves nothing.
@@ -38,13 +40,15 @@ fails — a test that cannot fail proves nothing.
 - **The Shotcut C++ application.** The collaboration client is wired into
   `MainWindow` and compiles in CI, but the QML shell in `edition/` runs as
   its own application. They are not yet one binary.
-- **Keyframed filter effects.** Filter parameters take their mid value; only
-  placement and opacity animate. Stated in the renderer rather than
-  interpolated wrongly.
-- **Rotation under keyframes.** Applied only when constant.
 - **Partial opacity ramps.** A ramp between two non-zero levels becomes a
   full fade over the same span, because this FFmpeg build's `fade` has no
-  `start_alpha`.
+  `start_alpha`. Stepping the alpha with chained `colorchannelmixer`
+  filters was tried and reverted: the steps do not compose reliably, and
+  the output could not be shown correct.
+- **Filter effects without an expression form.** `gblur`, `unsharp` and
+  `colorbalance` take no per-frame expression in this build, so a keyframed
+  parameter on those holds its mid value. `eq`-based effects (Saturation,
+  Brightness, Monochrome), Vignette and Rotation do animate.
 
 ## Known limits worth stating plainly
 
