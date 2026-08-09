@@ -42,7 +42,17 @@ fails — a test that cannot fail proves nothing.
   `MainWindow`, and the shell now loads from the application's own compiled
   resources — verified by building a harness that instantiates it exactly as
   the View menu does. What remains is that the shell opens as its own window
-  rather than replacing the existing docks.
+  rather than sitting in a dock.
+
+  Docking was attempted and reverted. `QQuickWidget` requires an `Item`
+  root, and `Shell.qml` is an `ApplicationWindow` — a harness compiling the
+  dock code against Qt reported `QQuickWidget: invalid root object`. Doing
+  it properly means extracting the interface into an `Item` that both the
+  standalone window and a dock can host, which is a real refactor of the
+  shell rather than a change to the menu action. The dock code was
+  otherwise sound: it owns the widget through the window, reports failure
+  to the user instead of the log, and keeps the menu item in step with the
+  dock's own close button.
 - **Partial opacity ramps.** A ramp between two non-zero levels becomes a
   full fade over the same span, because this FFmpeg build's `fade` has no
   `start_alpha`. Stepping the alpha with chained `colorchannelmixer`
