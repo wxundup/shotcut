@@ -24,6 +24,7 @@ reading the code. Re-run the checks yourself with:
 | Timeline interaction | Clip drag, trim handles, snapping, zoom about the pointer |
 | Keyframed effects | Animated saturation measured against a bypassed render at matching times: 22.2 / 98.0 / 27.1 versus 46.5 / 40.7 / 53.7 — low, high, low, tracking the keyframes |
 | Keyframed rotation | Renders as an angle expression ramping 0->25 degrees, not a constant |
+| In-app shell | Loads from the compiled resource: a harness instantiating `qrc:/editogether/edition/Shell.qml` reports success, and preflight fails if the resource drifts from the shell on disk |
 
 Each test was checked by breaking the behaviour it covers and confirming it
 fails — a test that cannot fail proves nothing.
@@ -38,8 +39,10 @@ fails — a test that cannot fail proves nothing.
   reverted rather than shipped behind a flag that breaks. Worth retrying on
   a machine with a physical GPU. Hardware *encode* is unaffected and works.
 - **The Shotcut C++ application.** The collaboration client is wired into
-  `MainWindow` and compiles in CI, but the QML shell in `edition/` runs as
-  its own application. They are not yet one binary.
+  `MainWindow`, and the shell now loads from the application's own compiled
+  resources — verified by building a harness that instantiates it exactly as
+  the View menu does. What remains is that the shell opens as its own window
+  rather than replacing the existing docks.
 - **Partial opacity ramps.** A ramp between two non-zero levels becomes a
   full fade over the same span, because this FFmpeg build's `fade` has no
   `start_alpha`. Stepping the alpha with chained `colorchannelmixer`
@@ -88,3 +91,6 @@ with them:
 - A clip's height was bound to `parent`, which is null while the delegate is
   being built.
 - The effects browser offered Position and Rotation for an audio clip.
+- The edition resource had fallen fourteen files behind the shell, so the
+  in-app preview would have failed to load. It is generated now, and
+  preflight fails when it drifts.

@@ -37,6 +37,19 @@ if (Test-Path $runner) {
     Write-Host "skipped (no qmltestrunner at $qtBin)"
 }
 
+Write-Host '== edition resource =='
+# The resource is generated; if it has drifted from what is on disk the
+# in-app preview loads to an error rather than an interface.
+$before = Get-Content "$repo\src\edition.qrc" -Raw -ErrorAction SilentlyContinue
+python (Join-Path $repo 'scripts/build-edition-qrc.py') | Out-Null
+$after = Get-Content "$repo\src\edition.qrc" -Raw
+if ($before -ne $after) {
+    $failed += 'edition.qrc was stale (regenerated; commit the change)'
+    Write-Host '  regenerated — it had drifted from the shell on disk'
+} else {
+    Write-Host '  up to date'
+}
+
 Write-Host '== clang-format =='
 if (Get-Command clang-format -ErrorAction SilentlyContinue) {
     $version = (clang-format --version)
