@@ -38,12 +38,13 @@ fails — a test that cannot fail proves nothing.
   display adapters, so the failure may be environmental. The attempt was
   reverted rather than shipped behind a flag that breaks. Worth retrying on
   a machine with a physical GPU. Hardware *encode* is unaffected and works.
-- **The Shotcut C++ application.** The collaboration client is wired into
-  `MainWindow`, and the interface now loads from the application's own
-  compiled resources into a dock beside the existing panels — tabbed,
-  floated or hidden like any other. What remains is that the dock shows the
-  new interface next to Shotcut's own, rather than the two being one editor
-  over one document.
+- **Editing through the new interface.** The interface now reads the open
+  document — visible tracks, their clips, positions and lengths — and
+  refreshes as the project changes, so the dock shows the real edit rather
+  than a fixture. It is read-only: edits still go through the existing
+  timeline and its undo stack. A second write path into the document would
+  be a way to corrupt it, and giving the new interface one is the next real
+  piece of work.
 
 - **Partial opacity ramps.** A ramp between two non-zero levels becomes a
   full fade over the same span, because this FFmpeg build's `fade` has no
@@ -63,8 +64,8 @@ fails — a test that cannot fail proves nothing.
 - Untagged SDR sources are treated as Rec.709. Almost always right, but it
   is an assumption, and the renderer says so per clip.
 - The audio meters and scopes read from real data, but the shell's session
-  model is a fixture: it is a UX reference driven by a real media index, not
-  a document format with save and load.
+  model is a fixture when run standalone. Hosted in the application it reads
+  the open MLT document; there is still no save and load of its own.
 
 ## Bugs found and fixed during development
 
