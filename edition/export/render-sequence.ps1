@@ -15,7 +15,10 @@
 param(
     [Parameter(Mandatory = $true)][string]$Project,
     [string]$Preset = 'h264-1080p',
-    [Parameter(Mandatory = $true)][string]$Output
+    [Parameter(Mandatory = $true)][string]$Output,
+    # Hardware encoding is used when the machine really has it. Software
+    # stays available because it is what the quality bar is set against.
+    [ValidateSet('auto', 'off')][string]$Hardware = 'auto'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -379,10 +382,35 @@ if ($audioLabels.Count -gt 0) {
 
 $ffArgs += @('-filter_complex', $filter.ToString())
 $ffArgs += @('-map', '[vout]', '-map', '[aout]')
-$ffArgs += @('-c:v', $p.vcodec)
+# Hardware encode when the machine has it. The composite is built on the
+# CPU, so this accelerates the encode rather than the whole graph — the
+# frames still arrive in system memory.
+$videoCodec = $p.vcodec
+$hwNote = ""
+if ($Hardware -eq 'auto') {
+    . (Join-Path $PSScriptRoot 'hardware.ps1')
+    $sample = if ($inputs.Count -gt 0) { $inputs[0].path } else { "" }
+    $hw = Get-HardwareSupport -Ffmpeg $ffmpeg -SampleFile $sample
+    if ($p.vcodec -eq 'libx264' -and $hw.h264) {
+        $videoCodec = $hw.h264.encoder
+        $hwNote = " ($($hw.h264.vendor))"
+    } elseif ($p.vcodec -eq 'libx265' -and $hw.hevc) {
+        $videoCodec = $hw.hevc.encoder
+        $hwNote = " ($($hw.hevc.vendor))"
+    }
+    # Decoding the sources on the GPU as well, when the device offers it.
+    if ($hw.decoder) {
+        $ffArgs = @($ffArgs[0..2]) + @('-hwaccel', $hw.decoder) + @($ffArgs[3..($ffArgs.Count - 1)])
+    }
+}
+
+$ffArgs += @('-c:v', $videoCodec)
 if ($p.vbitrate) { $ffArgs += @('-b:v', $p.vbitrate) }
-if ($p.vcodec -eq 'libx264') { $ffArgs += @('-preset', 'medium') }
-if ($p.vcodec -eq 'libx265') { $ffArgs += @('-preset', 'medium') }
+if ($videoCodec -in @('libx264', 'libx265')) { $ffArgs += @('-preset', 'medium') }
+# Hardware encoders take their own quality knobs; the software preset
+# names mean nothing to them.
+if ($videoCodec -match 'nvenc') { $ffArgs += @('-preset', 'p5', '-rc', 'vbr') }
+if ($videoCodec -match 'qsv') { $ffArgs += @('-preset', 'medium') }
 
 # Tag the stream so a player reproduces the intended colour instead of
 # guessing from the resolution.
@@ -408,6 +436,7 @@ if ($env:EDITOGETHER_DUMP_GRAPH) {
 }
 
 Write-Host "rendering $($videoOps.Count) video and $($audioOps.Count) audio clips to $Output"
+if ($hwNote) { Write-Host "  encoding with $videoCodec$hwNote" } else { Write-Host "  encoding with $videoCodec (software)" }
 & $ffmpeg @ffArgs
 if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed with $LASTEXITCODE" }
 
