@@ -258,9 +258,17 @@ Rectangle {
 
                                     x: modelData.start * timeline.laneWidth
                                     y: Theme.xxs
-                                    width: Math.max(24, modelData.width * timeline.laneWidth
-                                                        - Theme.xxs)
-                                    height: parent.height - Theme.xs
+                                    // A clip is drawn at its real duration. A
+                                    // minimum width would keep a short clip
+                                    // clickable but draw it over its
+                                    // neighbour, which reads as an overlap
+                                    // the sequence does not have.
+                                    width: Math.max(2, modelData.width * timeline.laneWidth
+                                                       - Theme.xxs)
+                                    // Bound to the track, not to parent:
+                                    // parent is null while the delegate is
+                                    // still being built.
+                                    height: timeline.trackHeight - Theme.xs
                                     radius: Theme.radiusControl
                                     clip: true
                                     color: clipMouse.containsMouse ? Qt.lighter(base, 1.12) : base

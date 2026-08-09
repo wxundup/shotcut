@@ -16,7 +16,15 @@ Rectangle {
 
     property string query: ""
 
-    readonly property var catalogue: Catalogue.names()
+    // Only what applies to the selection: offering Rotation for an audio
+    // clip is a control that cannot do anything.
+    readonly property var catalogue: Catalogue.names().filter(function (e) {
+        const kind = effects.session.selectedKind
+        if (kind === "")
+            return true
+        const audioEffect = e.group === "Audio"
+        return kind === "audio" ? audioEffect : !audioEffect
+    })
 
     readonly property var matches: catalogue.filter(function (e) {
         if (effects.query === "")
@@ -103,14 +111,12 @@ Rectangle {
                         elide: Text.ElideRight
                     }
 
-                    Text {
-                        text: entry.modelData.group
-                        font: Theme.captionFont
-                        color: Theme.textTertiary
-                        Layout.maximumWidth: 64
-                        elide: Text.ElideRight
-                        horizontalAlignment: Text.AlignRight
-                    }
+                    // The group used to be repeated on every row. It never
+                    // fit the column and read as clipped text, and the list
+                    // is already ordered by group — so the label was saying
+                    // something the arrangement already said. Removed rather
+                    // than shrunk.
+
                 }
 
                 MouseArea {

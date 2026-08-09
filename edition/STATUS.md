@@ -83,3 +83,8 @@ with them:
 - `drawtext` aborts on Windows without an explicit font.
 - `$args` is a reserved PowerShell name; assigning to it broke a script that
   parsed cleanly.
+- Short clips were drawn at a 24 px minimum width, so they overlapped their
+  neighbours and the timeline showed an overlap the sequence did not have.
+- A clip's height was bound to `parent`, which is null while the delegate is
+  being built.
+- The effects browser offered Position and Rotation for an audio clip.

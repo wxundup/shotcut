@@ -125,6 +125,20 @@ ApplicationWindow {
             return param.value
         }
 
+        // What kind of clip is selected: an audio clip should not be
+        // offered Position or Rotation, and a video clip should not be
+        // offered a compressor.
+        readonly property string selectedKind: {
+            for (var t = 0; t < tracks.length; t++) {
+                const clips = tracks[t].clips
+                for (var c = 0; c < clips.length; c++) {
+                    if (clips[c].label === selectedClip)
+                        return clips[c].kind === "audio" ? "audio" : "video"
+                }
+            }
+            return ""
+        }
+
         function findParam(effect, name) {
             for (var i = 0; i < effect.params.length; i++) {
                 if (effect.params[i].name === name)
@@ -697,6 +711,9 @@ ApplicationWindow {
 
             EffectsPanel {
                 Layout.preferredWidth: 236
+                // Without a floor the layout squeezes this below its
+                // content and the group labels clip.
+                Layout.minimumWidth: 236
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Edit"
                     && root.width >= 1400
