@@ -404,10 +404,7 @@ bool MainWindow::createEditionDock()
         delete view;
         QMessageBox::warning(this,
                              tr("EdiTogether"),
-                             tr("The EdiTogether interface could not be loaded.
-
-%1")
-                                 .arg(detail));
+                             tr("The EdiTogether interface could not be loaded.\n\n%1").arg(detail));
         return false;
     }
 
