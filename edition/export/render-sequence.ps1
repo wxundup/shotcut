@@ -169,6 +169,124 @@ function New-ParamExpression($param, $clipStart, $clipLength, $default) {
     return $expr
 }
 
+# Filter effects: everything the compositor does not apply as placement.
+# Each returns a filter fragment, or "" when its settings mean no change, so
+# an effect left at its defaults costs nothing in the graph.
+#
+# This mirrors edition/EffectCatalogue.js. The shapes are checked against it
+# by tst_catalogue.qml, which fails if an effect exists in one and not the
+# other.
+function Get-EffectFilter($effect, $clipStart, $clipLength) {
+    if (-not $effect.on) { return "" }
+
+    # Windows has no fontconfig, so drawtext must be handed a font file or
+    # it aborts. Escaped for the filtergraph: a drive colon would otherwise
+    # read as an argument separator.
+    $fontFile = "C:/Windows/Fonts/segoeui.ttf"
+    if (-not (Test-Path $fontFile)) { $fontFile = "C:/Windows/Fonts/arial.ttf" }
+    $fontArg = "fontfile='" + ($fontFile -replace ':', '\:') + "':"
+
+    # Resolved values at the clip's midpoint. Keyframed filter parameters
+    # would need per-frame expressions, which only some filters accept;
+    # taking the mid value is stated here rather than looking animated.
+    $v = @{}
+    foreach ($param in $effect.params) {
+        $value = [double]$param.value
+        if ($param.keyframes -and $param.keyframes.Count -gt 0) {
+            $mid = $param.keyframes[[int]([Math]::Floor($param.keyframes.Count / 2))]
+            $value = [double]$mid.value
+        }
+        $v[$param.name] = $value
+    }
+
+    function Near($a, $b) { return [Math]::Abs($a - $b) -lt 0.001 }
+
+    switch ($effect.name) {
+        'Crop' {
+            $l = $v['Left']; $r = $v['Right']; $t = $v['Top']; $b = $v['Bottom']
+            if ((Near $l 0) -and (Near $r 0) -and (Near $t 0) -and (Near $b 0)) { return "" }
+            $w = [Math]::Round(1 - $l - $r, 4); $h = [Math]::Round(1 - $t - $b, 4)
+            return "crop=w=iw*${w}:h=ih*${h}:x=iw*$([Math]::Round($l,4)):y=ih*$([Math]::Round($t,4))," +
+                   "scale=w=iw/${w}:h=ih/${h}"
+        }
+        'Flip' {
+            $parts = @()
+            if ($v['Horizontal'] -ge 0.5) { $parts += 'hflip' }
+            if ($v['Vertical'] -ge 0.5) { $parts += 'vflip' }
+            return ($parts -join ',')
+        }
+        'Colour Balance' {
+            $r = $v['Red']; $g = $v['Green']; $b = $v['Blue']
+            if ((Near $r 0) -and (Near $g 0) -and (Near $b 0)) { return "" }
+            return "colorbalance=rm=$([Math]::Round($r,3)):gm=$([Math]::Round($g,3)):bm=$([Math]::Round($b,3))"
+        }
+        'Saturation' {
+            $s = $v['Level']
+            if (Near $s 1) { return "" }
+            return "eq=saturation=$([Math]::Round($s,3))"
+        }
+        'Brightness' {
+            $br = $v['Brightness']; $co = $v['Contrast']
+            if ((Near $br 0) -and (Near $co 1)) { return "" }
+            return "eq=brightness=$([Math]::Round($br,3)):contrast=$([Math]::Round($co,3))"
+        }
+        'White Balance' {
+            $k = $v['Temperature']
+            if (Near $k 6500) { return "" }
+            $shift = (6500 - $k) / 6500
+            return "colorbalance=rm=$([Math]::Round($shift * 0.5,3)):bm=$([Math]::Round(-$shift * 0.5,3))"
+        }
+        'Curves' {
+            $presets = @('', 'lighter', 'darker', 'increase_contrast', 'linear_contrast')
+            $choice = $presets[[int][Math]::Round($v['Preset'])]
+            if (-not $choice) { return "" }
+            return "curves=preset=$choice"
+        }
+        'Monochrome' {
+            $a = $v['Amount']
+            if (Near $a 0) { return "" }
+            return "eq=saturation=$([Math]::Round(1 - $a,3))"
+        }
+        'Gaussian Blur' {
+            $r = $v['Radius']
+            if (Near $r 0) { return "" }
+            return "gblur=sigma=$([Math]::Round($r,2))"
+        }
+        'Sharpen' {
+            $a = $v['Amount']
+            if (Near $a 0) { return "" }
+            return "unsharp=5:5:$([Math]::Round($a,2)):5:5:0"
+        }
+        'Vignette' {
+            $a = $v['Amount']
+            if (Near $a 0) { return "" }
+            return "vignette=angle=$([Math]::Round([Math]::PI / 5 * (0.4 + $a * 0.6),4))"
+        }
+        'Noise' {
+            $s = [int][Math]::Round($v['Strength'])
+            if ($s -eq 0) { return "" }
+            return "noise=alls=${s}:allf=t+u"
+        }
+        'Text' {
+            $content = if ($effect.text) { $effect.text } else { "" }
+            if (-not $content) { return "" }
+            $escaped = $content -replace '\\', '\\\\' -replace ':', '\:' -replace "'", "\'"
+            return "drawtext=${fontArg}text='${escaped}':fontsize=$([int]$v['Size'])" +
+                   ":fontcolor=white:x=(w-text_w)*$([Math]::Round($v['Position X'],3))" +
+                   ":y=(h-text_h)*$([Math]::Round($v['Position Y'],3))" +
+                   ":box=1:boxcolor=black@0.4:boxborderw=8"
+        }
+        'Timecode' {
+            return "drawtext=${fontArg}timecode='00\:00\:00\:00':rate=30" +
+                   ":fontsize=$([int]$v['Size'])" +
+                   ":fontcolor=white:x=(w-text_w)*$([Math]::Round($v['Position X'],3))" +
+                   ":y=(h-text_h)*$([Math]::Round($v['Position Y'],3))" +
+                   ":box=1:boxcolor=black@0.5:boxborderw=6"
+        }
+        default { return "" }
+    }
+}
+
 function Get-Param($effects, $effectName, $paramName) {
     if ($null -eq $effects) { return $null }
     foreach ($e in $effects) {
@@ -224,6 +342,19 @@ foreach ($v in $videoOps) {
     # Reset to clip-local time first: fades and rotation are expressed
     # relative to the clip, and the shift onto the timeline comes last.
     [void]$filter.Append("trim=duration=$($v.length),setpts=PTS-STARTPTS,")
+
+    # The clip's own effect stack, in the order the inspector lists it.
+    # Transform and Opacity are handled below as placement, so they are
+    # skipped here rather than applied twice.
+    if ($null -ne $effects) {
+        foreach ($effect in $effects) {
+            if ($effect.name -in @('Transform', 'Opacity')) { continue }
+            $fragment = Get-EffectFilter $effect $v.start $v.length
+            if ($fragment) {
+                [void]$filter.Append("$fragment,")
+            }
+        }
+    }
 
     # Rotation: a constant angle only, since rotate= takes no per-frame
     # expression for the output size. Keyframed rotation is not applied

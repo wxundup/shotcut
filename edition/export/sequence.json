@@ -86,7 +86,20 @@
           "label": "A003_Take2",
           "media": "A003_Take2",
           "start": 0.0,
-          "width": 0.22
+          "width": 0.22,
+          "effects": [
+            {
+              "name": "Gaussian Blur",
+              "on": true,
+              "params": [
+                {
+                  "name": "Radius",
+                  "value": 12,
+                  "keyframes": []
+                }
+              ]
+            }
+          ]
         },
         {
           "label": "A007_Take1",
@@ -98,7 +111,53 @@
           "label": "B012_Wide",
           "media": "B012_Wide",
           "start": 0.56,
-          "width": 0.26
+          "width": 0.26,
+          "effects": [
+            {
+              "name": "Monochrome",
+              "on": true,
+              "params": [
+                {
+                  "name": "Amount",
+                  "value": 1.0,
+                  "keyframes": []
+                }
+              ]
+            },
+            {
+              "name": "Vignette",
+              "on": true,
+              "params": [
+                {
+                  "name": "Amount",
+                  "value": 0.9,
+                  "keyframes": []
+                }
+              ]
+            },
+            {
+              "name": "Text",
+              "on": true,
+              "text": "GRADED",
+              "params": [
+                {
+                  "name": "Size",
+                  "value": 96,
+                  "keyframes": []
+                },
+                {
+                  "name": "Position X",
+                  "value": 0.5,
+                  "keyframes": []
+                },
+                {
+                  "name": "Position Y",
+                  "value": 0.5,
+                  "keyframes": []
+                }
+              ]
+            }
+          ]
         },
         {
           "label": "Drone_04",

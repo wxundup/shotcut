@@ -7,6 +7,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import EdiTogether.Theme
+import "EffectCatalogue.js" as Catalogue
 
 ApplicationWindow {
     id: root
@@ -182,14 +183,9 @@ ApplicationWindow {
         function addEffect(name) {
             if (selectedClip === "")
                 return
-            const defaults = {
-                "Gaussian Blur": [{ name: qsTr("Radius"), value: 4, min: 0, max: 50 }],
-                "Saturation":    [{ name: qsTr("Level"), value: 1, min: 0, max: 3 }],
-                "Sharpen":       [{ name: qsTr("Amount"), value: 0.5, min: 0, max: 2 }],
-                "Gain":          [{ name: qsTr("Gain"), value: 1, min: 0, max: 4 }],
-            }
-            const params = (defaults[name] || [{ name: qsTr("Amount"), value: 1, min: 0, max: 2 }])
-                .map(function (p) { return Object.assign({}, p, { keyframes: [] }) })
+            // Defaults come from the catalogue, so the browser, the
+            // inspector and the renderer cannot disagree about an effect.
+            const params = Catalogue.defaultParams(name)
             effects = effects.concat([{ name: name, on: true, params: params }])
         }
 

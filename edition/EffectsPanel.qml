@@ -7,6 +7,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import EdiTogether.Theme
 import EdiTogether.Controls
+import "EffectCatalogue.js" as Catalogue
 
 Rectangle {
     id: effects
@@ -15,23 +16,7 @@ Rectangle {
 
     property string query: ""
 
-    readonly property var catalogue: [
-        { name: qsTr("Transform"),      group: qsTr("Motion") },
-        { name: qsTr("Crop"),           group: qsTr("Motion") },
-        { name: qsTr("Corner Pin"),     group: qsTr("Motion") },
-        { name: qsTr("Opacity"),        group: qsTr("Motion") },
-        { name: qsTr("Colour Balance"), group: qsTr("Colour") },
-        { name: qsTr("Curves"),         group: qsTr("Colour") },
-        { name: qsTr("Saturation"),     group: qsTr("Colour") },
-        { name: qsTr("White Balance"),  group: qsTr("Colour") },
-        { name: qsTr("Gaussian Blur"),  group: qsTr("Blur") },
-        { name: qsTr("Sharpen"),        group: qsTr("Blur") },
-        { name: qsTr("Text"),           group: qsTr("Generate") },
-        { name: qsTr("Timer"),          group: qsTr("Generate") },
-        { name: qsTr("Gain"),           group: qsTr("Audio") },
-        { name: qsTr("Compressor"),     group: qsTr("Audio") },
-        { name: qsTr("Parametric EQ"),  group: qsTr("Audio") },
-    ]
+    readonly property var catalogue: Catalogue.names()
 
     readonly property var matches: catalogue.filter(function (e) {
         if (effects.query === "")
