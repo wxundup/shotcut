@@ -24,7 +24,7 @@ reading the code. Re-run the checks yourself with:
 | Timeline interaction | Clip drag, trim handles, snapping, zoom about the pointer |
 | Keyframed effects | Animated saturation measured against a bypassed render at matching times: 22.2 / 98.0 / 27.1 versus 46.5 / 40.7 / 53.7 — low, high, low, tracking the keyframes |
 | Keyframed rotation | Renders as an angle expression ramping 0->25 degrees, not a constant |
-| In-app shell | Loads from the compiled resource: a harness instantiating `qrc:/editogether/edition/Shell.qml` reports success, and preflight fails if the resource drifts from the shell on disk |
+| In-app shell | Hosted in a `QDockWidget` inside the application: a harness compiling the dock code against Qt reports the interface loads from the compiled resource, and preflight fails if the resource drifts from what is on disk |
 
 Each test was checked by breaking the behaviour it covers and confirming it
 fails — a test that cannot fail proves nothing.
@@ -39,20 +39,12 @@ fails — a test that cannot fail proves nothing.
   reverted rather than shipped behind a flag that breaks. Worth retrying on
   a machine with a physical GPU. Hardware *encode* is unaffected and works.
 - **The Shotcut C++ application.** The collaboration client is wired into
-  `MainWindow`, and the shell now loads from the application's own compiled
-  resources — verified by building a harness that instantiates it exactly as
-  the View menu does. What remains is that the shell opens as its own window
-  rather than sitting in a dock.
+  `MainWindow`, and the interface now loads from the application's own
+  compiled resources into a dock beside the existing panels — tabbed,
+  floated or hidden like any other. What remains is that the dock shows the
+  new interface next to Shotcut's own, rather than the two being one editor
+  over one document.
 
-  Docking was attempted and reverted. `QQuickWidget` requires an `Item`
-  root, and `Shell.qml` is an `ApplicationWindow` — a harness compiling the
-  dock code against Qt reported `QQuickWidget: invalid root object`. Doing
-  it properly means extracting the interface into an `Item` that both the
-  standalone window and a dock can host, which is a real refactor of the
-  shell rather than a change to the menu action. The dock code was
-  otherwise sound: it owns the widget through the window, reports failure
-  to the user instead of the log, and keeps the menu item in step with the
-  dock's own close button.
 - **Partial opacity ramps.** A ramp between two non-zero levels becomes a
   full fade over the same span, because this FFmpeg build's `fade` has no
   `start_alpha`. Stepping the alpha with chained `colorchannelmixer`

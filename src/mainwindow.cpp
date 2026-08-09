@@ -92,9 +92,12 @@
 #include "widgets/toneproducerwidget.h"
 #include "widgets/trackpropertieswidget.h"
 #include "widgets/video4linuxwidget.h"
+#include <QDockWidget>
 #include <QInputDialog>
+#include <QMessageBox>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQuickWidget>
 #ifdef Q_OS_WIN
 #include "windowstools.h"
 #endif
@@ -346,15 +349,66 @@ void MainWindow::setupAndConnectUndoStack()
     connect(leaveAction, &QAction::triggered, this, [this]() { m_collab->leave(); });
 
     // EdiTogether: preview the target shell inside the app
-    QAction *previewAction = ui->menuView->addAction(tr("Preview EdiTogether Interface"));
-    connect(previewAction, &QAction::triggered, this, [this]() {
-        auto *engine = QmlUtilities::sharedEngine();
-        engine->addImportPath("qrc:/editogether/modules");
-        QQmlComponent component(engine, QUrl("qrc:/editogether/edition/Shell.qml"));
-        QObject *window = component.create();
-        if (!window)
-            qWarning() << "EdiTogether shell:" << component.errorString();
+    // The EdiTogether interface is a dock, so it takes part in the
+    // application's own layout — tabbed, floated or hidden like any other
+    // panel — rather than opening a second detached window.
+    QAction *editionAction = ui->menuView->addAction(tr("EdiTogether Interface"));
+    editionAction->setCheckable(true);
+    connect(editionAction, &QAction::triggered, this, [this, editionAction](bool show) {
+        if (!show) {
+            if (m_editionDock)
+                m_editionDock->hide();
+            return;
+        }
+        if (!m_editionDock && !createEditionDock()) {
+            editionAction->setChecked(false);
+            return;
+        }
+        m_editionDock->show();
+        m_editionDock->raise();
     });
+    connect(this, &MainWindow::editionDockVisibilityChanged, editionAction, &QAction::setChecked);
+}
+
+// Builds the dock holding the QML interface, once. Returns false and tells
+// the user if it cannot be loaded, rather than failing to the log where
+// nobody looks.
+bool MainWindow::createEditionDock()
+{
+    auto *engine = QmlUtilities::sharedEngine();
+    engine->addImportPath(QStringLiteral("qrc:/editogether/modules"));
+
+    // EditorRoot is an Item: QQuickWidget cannot host a window, which is
+    // why the interface is separated from the standalone Shell window.
+    auto *view = new QQuickWidget(engine, this);
+    view->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    view->setSource(QUrl(QStringLiteral("qrc:/editogether/edition/EditorRoot.qml")));
+
+    if (view->status() == QQuickWidget::Error) {
+        QString detail;
+        const auto errors = view->errors();
+        if (!errors.isEmpty())
+            detail = errors.first().toString();
+        delete view;
+        QMessageBox::warning(this,
+                             tr("EdiTogether"),
+                             tr("The EdiTogether interface could not be loaded.
+
+%1")
+                                 .arg(detail));
+        return false;
+    }
+
+    m_editionDock = new QDockWidget(tr("EdiTogether"), this);
+    m_editionDock->setObjectName(QStringLiteral("editionDock"));
+    m_editionDock->setWidget(view);
+    m_editionDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    addDockWidget(Qt::RightDockWidgetArea, m_editionDock);
+    connect(m_editionDock,
+            &QDockWidget::visibilityChanged,
+            this,
+            &MainWindow::editionDockVisibilityChanged);
+    return true;
 }
 
 void MainWindow::setupAndConnectPlayerWidget()

@@ -124,6 +124,7 @@ signals:
     void producerOpened(bool withReopen = true);
     void profileChanged();
     void openFailed(QString);
+    void editionDockVisibilityChanged(bool visible);
     void aboutToShutDown();
     void renameRequested();
     void serviceInChanged(int delta, Mlt::Service *);
@@ -148,6 +149,7 @@ private:
     void setupLayoutSwitcher();
     void centerLayoutInRemainingToolbarSpace();
     void setupAndConnectDocks();
+    bool createEditionDock();
     void setupMenuFile();
     void setupMenuView();
     void connectVideoWidgetSignals();
@@ -197,6 +199,7 @@ private:
     bool m_isKKeyPressed;
     QUndoStack *m_undoStack;
     CollabSession *m_collab = nullptr;
+    QDockWidget *m_editionDock = nullptr;
     QDockWidget *m_historyDock;
     QActionGroup *m_profileGroup;
     QActionGroup *m_externalGroup;

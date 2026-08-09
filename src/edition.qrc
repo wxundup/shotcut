@@ -34,6 +34,7 @@
     <file alias="edition/ColorPanel.qml">../edition/ColorPanel.qml</file>
     <file alias="edition/DeliverPanel.qml">../edition/DeliverPanel.qml</file>
     <file alias="edition/DspRack.qml">../edition/DspRack.qml</file>
+    <file alias="edition/EditorRoot.qml">../edition/EditorRoot.qml</file>
     <file alias="edition/EffectsPanel.qml">../edition/EffectsPanel.qml</file>
     <file alias="edition/InspectorPanel.qml">../edition/InspectorPanel.qml</file>
     <file alias="edition/LibraryPanel.qml">../edition/LibraryPanel.qml</file>
