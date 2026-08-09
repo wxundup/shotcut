@@ -19,6 +19,10 @@ Rectangle {
     readonly property int trackHeight: Theme.trackHeight
     readonly property int rulerHeight: 24
 
+    // True while a clip body or trim handle is being dragged, so the lane
+    // does not turn the gesture into a flick.
+    property bool draggingClip: false
+
     readonly property real zoom: zoomSlider.value
     // Width the whole sequence occupies at the current zoom.
     readonly property real laneWidth:
@@ -172,6 +176,13 @@ Rectangle {
                 flickableDirection: Flickable.HorizontalFlick
                 boundsBehavior: Flickable.StopAtBounds
                 clip: true
+
+                // Dragging a clip or a trim handle is a horizontal gesture,
+                // which the Flickable would otherwise claim as a flick — so
+                // every drag inside the lane did nothing. Let the child under
+                // the pointer decide first; the lane still scrolls from its
+                // scrollbar, the wheel, and empty space.
+                interactive: !timeline.draggingClip
 
                 ScrollBar.horizontal: ScrollBar {
                     policy: lane.contentWidth > lane.width
@@ -372,6 +383,10 @@ Rectangle {
                                         anchors.rightMargin: 6
                                         hoverEnabled: true
                                         enabled: !track.modelData.locked
+                                        // Keep the gesture: the lane is a
+                                        // Flickable and would otherwise take
+                                        // this horizontal drag as a flick.
+                                        preventStealing: true
                                         cursorShape: pressed
                                             ? Qt.ClosedHandCursor : Qt.OpenHandCursor
                                         // where in the clip the grab started
@@ -380,7 +395,10 @@ Rectangle {
                                         onPressed: (mouse) => {
                                             timeline.session.selectedClip = clip.modelData.label
                                             grabOffset = (mouse.x + 6) / timeline.laneWidth
+                                            timeline.draggingClip = true
                                         }
+                                        onReleased: timeline.draggingClip = false
+                                        onCanceled: timeline.draggingClip = false
                                         onPositionChanged: (mouse) => {
                                             if (!pressed)
                                                 return
@@ -401,9 +419,15 @@ Rectangle {
                                         width: 6
                                         hoverEnabled: true
                                         enabled: !track.modelData.locked
+                                        preventStealing: true
                                         cursorShape: Qt.SizeHorCursor
-                                        onPressed: timeline.session.selectedClip
-                                            = clip.modelData.label
+                                        onPressed: {
+                                            timeline.session.selectedClip
+                                                = clip.modelData.label
+                                            timeline.draggingClip = true
+                                        }
+                                        onReleased: timeline.draggingClip = false
+                                        onCanceled: timeline.draggingClip = false
                                         onPositionChanged: (mouse) => {
                                             if (!pressed)
                                                 return
@@ -422,9 +446,15 @@ Rectangle {
                                         width: 6
                                         hoverEnabled: true
                                         enabled: !track.modelData.locked
+                                        preventStealing: true
                                         cursorShape: Qt.SizeHorCursor
-                                        onPressed: timeline.session.selectedClip
-                                            = clip.modelData.label
+                                        onPressed: {
+                                            timeline.session.selectedClip
+                                                = clip.modelData.label
+                                            timeline.draggingClip = true
+                                        }
+                                        onReleased: timeline.draggingClip = false
+                                        onCanceled: timeline.draggingClip = false
                                         onPositionChanged: (mouse) => {
                                             if (!pressed)
                                                 return
