@@ -3,7 +3,10 @@
 Written to be read by someone deciding whether to rely on this. Every
 "verified" line below was checked by running the thing and inspecting real
 output — a rendered file, a captured frame, a measured number — not by
-reading the code. Re-run the checks yourself with:
+reading the code. For how this stands against Premiere, Resolve and CapCut, see
+COMPARISON.md.
+
+Re-run the checks yourself with:
 
     powershell -ExecutionPolicy Bypass -File scripts/check-editogether.ps1
 
