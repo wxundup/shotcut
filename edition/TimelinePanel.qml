@@ -145,7 +145,7 @@ Rectangle {
                             soloed: headRow.modelData.soloed
                             locked: headRow.modelData.locked
                             volume: headRow.modelData.volume
-                            level: headRow.modelData.level
+                            level: timeline.session.levelFor(headRow.index)
                             onMuteToggled: timeline.session.setTrackProperty(
                                 headRow.index, "muted", !headRow.modelData.muted)
                             onSoloToggled: timeline.session.setTrackProperty(

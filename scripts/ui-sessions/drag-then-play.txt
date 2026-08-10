@@ -1,0 +1,8 @@
+note drag a clip then play, so the source changes under a running player
+click 690 768
+drag 690 768 900 768
+wait 400
+key " "
+wait 2500
+key " "
+shot drag-then-play

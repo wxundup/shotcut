@@ -53,12 +53,28 @@ Item {
         loops: MediaPlayer.Infinite
     }
 
-    onClipPositionChanged: {
-        if (!layer.playing && player.seekable) {
+    // Seeking is deferred rather than done inside the change handler. An
+    // edit that moves both edges of a clip — a trim — writes start and then
+    // width, so a handler running on the first write seeks against a clip
+    // that briefly describes a different span, and each seek re-enters the
+    // handler. Collapsing the seeks onto a timer means the model has
+    // settled before any of them runs.
+    Timer {
+        id: seekSettle
+        interval: 30
+        onTriggered: {
+            if (layer.playing || !player.seekable || player.duration <= 0)
+                return
             const target = layer.clipPosition * player.duration
-            if (Math.abs(player.position - target) > 40)
-                player.position = target
+            if (!isFinite(target) || Math.abs(player.position - target) <= 40)
+                return
+            player.position = target
         }
+    }
+
+    onClipPositionChanged: {
+        if (!layer.playing)
+            seekSettle.restart()
     }
 
     onPlayingChanged: {
@@ -70,22 +86,34 @@ Item {
 
     // A paused player shows nothing until it has decoded a frame, so start
     // it briefly and park it at the playhead once media is loaded.
+    //
+    // Priming happens once per source. play() and pause() both change the
+    // media status, which re-enters this handler, which primes again — the
+    // recursion that exhausted the stack on every layer at startup.
+    property url primedSource: ""
+
     Connections {
         target: player
         function onMediaStatusChanged() {
-            if (player.mediaStatus === MediaPlayer.LoadedMedia
-                    || player.mediaStatus === MediaPlayer.BufferedMedia) {
-                if (layer.playing) {
-                    player.play()
-                } else {
-                    player.play()
-                    player.pause()
-                    if (player.seekable)
-                        player.position = layer.clipPosition * player.duration
-                }
+            const ready = player.mediaStatus === MediaPlayer.LoadedMedia
+                       || player.mediaStatus === MediaPlayer.BufferedMedia
+            if (!ready || layer.primedSource == layer.source)
+                return
+            layer.primedSource = layer.source
+
+            if (layer.playing) {
+                player.play()
+                return
             }
+            player.play()
+            player.pause()
+            if (player.seekable && player.duration > 0)
+                player.position = layer.clipPosition * player.duration
         }
     }
+
+    // A new clip on this track needs priming again.
+    onSourceChanged: layer.primedSource = ""
 
     VideoOutput {
         id: videoOut
@@ -97,7 +125,7 @@ Item {
         scale: Math.max(0.01, layer.effects.scale)
         rotation: layer.effects.rotation
         transformOrigin: Item.Center
-        x: (layer.effects.positionX - 0.5) * layer.width
-        y: (layer.effects.positionY - 0.5) * layer.height
+        x: 0  // PROBE
+        y: 0  // PROBE
     }
 }

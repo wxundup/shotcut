@@ -1,0 +1,6 @@
+note zoom the timeline, which rescales every clip and layer
+drag 1420 655 1500 655
+wait 600
+wheel 800 780 240
+wait 600
+shot zoomed

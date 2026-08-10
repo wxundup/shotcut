@@ -1,0 +1,4 @@
+note play briefly and watch for the recursion
+key " "
+wait 2500
+shot playing

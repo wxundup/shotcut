@@ -1,0 +1,7 @@
+note scrub the ruler repeatedly, which is where seeking happens
+click 1000 690
+click 700 690
+click 1200 690
+click 500 690
+wait 800
+shot after-scrubs

@@ -20,12 +20,17 @@ Item {
 
     readonly property var tracks: session.tracks
 
-    // Video tracks, bottom of the timeline first so V1 sits under V2.
-    readonly property var videoTracks: {
+    // Which track indices are video, bottom of the timeline first so V1
+    // sits under V2. Indices rather than track records: any edit replaces
+    // the record objects, and a Repeater given a fresh array of them tears
+    // down every layer and builds new ones — each with a new MediaPlayer,
+    // mid-edit. The indices only change when a track is added or removed,
+    // so the players survive ordinary editing.
+    readonly property var videoTrackIndices: {
         const out = []
         for (var i = tracks.length - 1; i >= 0; i--) {
             if (!tracks[i].audio)
-                out.push(tracks[i])
+                out.push(i)
         }
         return out
     }
@@ -34,8 +39,8 @@ Item {
     // session rather than layer callbacks, so it is correct on the first
     // frame instead of waiting for a transition.
     readonly property bool anyClipAtPlayhead: {
-        for (var i = 0; i < videoTracks.length; i++) {
-            const clips = videoTracks[i].clips
+        for (var i = 0; i < videoTrackIndices.length; i++) {
+            const clips = tracks[videoTrackIndices[i]].clips
             for (var c = 0; c < clips.length; c++) {
                 const clipRecord = clips[c]
                 if (playhead >= clipRecord.start
@@ -58,13 +63,15 @@ Item {
     // Composited layers.
     Repeater {
         id: layerRepeater
-        model: frame.videoTracks
+        model: frame.videoTrackIndices
 
         ProgramLayer {
             id: programLayer
             required property var modelData
             anchors.fill: parent
-            track: modelData
+            // Look the track up by index, so the layer follows edits to it
+            // without the Repeater rebuilding this delegate.
+            track: frame.tracks[modelData]
             session: frame.session
             playhead: frame.playhead
             playing: frame.playing

@@ -1,0 +1,11 @@
+note search filters the library while layers hold sources
+click 210 108
+wait 400
+click 140 146
+key filter
+wait 800
+key {BACKSPACE}{BACKSPACE}{BACKSPACE}{BACKSPACE}{BACKSPACE}{BACKSPACE}
+wait 800
+key " "
+wait 2000
+shot search-then-play

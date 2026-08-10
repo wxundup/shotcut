@@ -1,0 +1,47 @@
+# Working the Edit workspace the way a person would on first opening it.
+note opening state
+shot 01-opened
+
+note select a clip in the timeline
+click 690 768
+shot 02-clip-selected
+
+note drag it along the track
+drag 690 768 900 768
+shot 03-clip-dragged
+
+note trim from its left edge
+drag 800 768 860 768
+shot 04-trimmed
+
+note scrub the timeline ruler
+click 1000 690
+shot 05-scrubbed
+
+note zoom in with the slider
+drag 1420 655 1500 655
+shot 06-zoomed
+
+note ctrl+wheel over the lane
+wheel 800 780 240
+shot 07-wheel-zoom
+
+note switch the library to list view
+click 210 108
+shot 08-library-list
+
+note search the library
+click 140 146
+key filter
+shot 09-search
+
+note clear the search
+key {BACKSPACE}{BACKSPACE}{BACKSPACE}{BACKSPACE}{BACKSPACE}{BACKSPACE}
+shot 10-search-cleared
+
+note play, then pause
+key " "
+wait 1200
+shot 11-playing
+key " "
+shot 12-paused

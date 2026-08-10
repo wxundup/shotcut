@@ -73,7 +73,7 @@ Rectangle {
                     name: modelData.name
                     gain: modelData.volume
                     pan: modelData.pan === undefined ? 0 : modelData.pan
-                    level: modelData.level
+                    level: audioPanel.session.levelFor(channel.index)
                     peak: modelData.peak === undefined ? 0 : modelData.peak
                     muted: modelData.muted
                     soloed: modelData.soloed

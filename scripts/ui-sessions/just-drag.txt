@@ -1,0 +1,5 @@
+note drag a clip, which moves it under the playhead
+click 690 768
+drag 690 768 900 768
+wait 1000
+shot after-drag

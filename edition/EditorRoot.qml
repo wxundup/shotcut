@@ -64,6 +64,13 @@ Item {
         // Master levels, only meaningful while transport runs.
         property real masterLeft: 0.0
         property real masterRight: 0.0
+        // Meter levels per track, held beside the track records so that
+        // metering never rewrites the model the compositor binds to.
+        property var trackLevels: []
+        function levelFor(index) {
+            return index < trackLevels.length ? trackLevels[index] : 0
+        }
+
         property real masterPeakLeft: 0.0
         property real masterPeakRight: 0.0
         property real masterGain: 0.8
@@ -582,16 +589,21 @@ Item {
             sessionModel.masterPeakLeft = Math.max(l, sessionModel.masterPeakLeft * 0.97)
             sessionModel.masterPeakRight = Math.max(r, sessionModel.masterPeakRight * 0.97)
 
-            // Audio track meters follow their own fader.
-            const next = sessionModel.tracks.map(function (track, i) {
-                if (!track.audio)
-                    return track
+            // Track meters live beside the tracks rather than inside them.
+            // Rebuilding the track array here replaced every clip record
+            // thirty times a second, which re-evaluated each program layer's
+            // source and player state and eventually exhausted the stack.
+            const levels = []
+            for (var i = 0; i < sessionModel.tracks.length; i++) {
+                const track = sessionModel.tracks[i]
+                if (!track.audio) {
+                    levels.push(0)
+                    continue
+                }
                 const wobble = 0.5 + 0.4 * Math.abs(Math.sin(t / (2.3 + i)))
-                return Object.assign({}, track, {
-                    level: track.muted ? 0 : wobble * track.volume
-                })
-            })
-            sessionModel.tracks = next
+                levels.push(track.muted ? 0 : wobble * track.volume)
+            }
+            sessionModel.trackLevels = levels
         }
     }
 

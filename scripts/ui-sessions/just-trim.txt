@@ -1,0 +1,8 @@
+note trim a clip to zero-ish width, then play
+click 690 768
+drag 690 768 900 768
+drag 800 768 860 768
+wait 500
+key " "
+wait 2500
+shot trim-then-play
