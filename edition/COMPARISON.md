@@ -37,7 +37,7 @@ with no account and no service. The rest of that table is parity at best.
 | Keying | Chroma key and despill | Keyers with spill suppression, edge and light wrap |
 | Captions and speech | Local whisper transcription to SRT, no upload | Automatic transcription in all three, cloud-assisted, more accurate |
 | Stabilisation | None | Standard |
-| Multicam | None | Standard |
+| Multicam | Angles synced by audio correlation, within ~25 ms on tested material | Standard, with live switching and angle editing |
 | Media management | An index of a folder | Bins, metadata, search, shared libraries, conform and relink |
 | Maturity | Weeks of work, one contributor | Decades, hundreds of engineers, millions of users |
 

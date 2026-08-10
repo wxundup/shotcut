@@ -87,6 +87,75 @@ var media = [
                   ]
     },
     {
+        "label":  "CamA_Wide.mp4",
+        "name":  "CamA_Wide",
+        "duration":  12,
+        "kind":  "video",
+        "source":  "media/CamA_Wide.mp4",
+        "codec":  "h264",
+        "size":  "640 x 360",
+        "rate":  "25/1",
+        "thumbs":  [
+                       "media/thumbs/CamA_Wide-0.jpg",
+                       "media/thumbs/CamA_Wide-1.jpg",
+                       "media/thumbs/CamA_Wide-2.jpg",
+                       "media/thumbs/CamA_Wide-3.jpg",
+                       "media/thumbs/CamA_Wide-4.jpg",
+                       "media/thumbs/CamA_Wide-5.jpg"
+                   ],
+        "peaks":  [
+
+                  ],
+        "syncOffset":  0,
+        "syncGroup":  "CamA_Wide"
+    },
+    {
+        "label":  "CamB_Close.mp4",
+        "name":  "CamB_Close",
+        "duration":  12,
+        "kind":  "video",
+        "source":  "media/CamB_Close.mp4",
+        "codec":  "h264",
+        "size":  "640 x 360",
+        "rate":  "25/1",
+        "thumbs":  [
+                       "media/thumbs/CamB_Close-0.jpg",
+                       "media/thumbs/CamB_Close-1.jpg",
+                       "media/thumbs/CamB_Close-2.jpg",
+                       "media/thumbs/CamB_Close-3.jpg",
+                       "media/thumbs/CamB_Close-4.jpg",
+                       "media/thumbs/CamB_Close-5.jpg"
+                   ],
+        "peaks":  [
+
+                  ],
+        "syncOffset":  2.4,
+        "syncGroup":  "CamA_Wide"
+    },
+    {
+        "label":  "CamC_Test.mp4",
+        "name":  "CamC_Test",
+        "duration":  12,
+        "kind":  "video",
+        "source":  "media/CamC_Test.mp4",
+        "codec":  "h264",
+        "size":  "640 x 360",
+        "rate":  "25/1",
+        "thumbs":  [
+                       "media/thumbs/CamC_Test-0.jpg",
+                       "media/thumbs/CamC_Test-1.jpg",
+                       "media/thumbs/CamC_Test-2.jpg",
+                       "media/thumbs/CamC_Test-3.jpg",
+                       "media/thumbs/CamC_Test-4.jpg",
+                       "media/thumbs/CamC_Test-5.jpg"
+                   ],
+        "peaks":  [
+
+                  ],
+        "syncOffset":  0.745,
+        "syncGroup":  "CamA_Wide"
+    },
+    {
         "label":  "Drone_04.mp4",
         "name":  "Drone_04",
         "duration":  5,
@@ -359,8 +428,7 @@ var media = [
                   ],
         "thumbs":  [
 
-                   ],
-        "captions":  "media/captions/Interview_01.srt"
+                   ]
     },
     {
         "label":  "Score_Loop.wav",
