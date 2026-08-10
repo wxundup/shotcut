@@ -154,6 +154,43 @@ Rectangle {
                             }
                         }
 
+                        // A file-valued effect — a LUT — chooses its file
+                        // before any of its numbers mean anything.
+                        RowLayout {
+                            Layout.fillWidth: true
+                            visible: effectBlock.modelData.file !== undefined
+                            spacing: Theme.s
+
+                            Text {
+                                text: effectBlock.modelData.file
+                                    ? effectBlock.modelData.file.name : ""
+                                font: Theme.captionFont
+                                color: Theme.textTertiary
+                                Layout.preferredWidth: 68
+                            }
+
+                            Segmented {
+                                Layout.fillWidth: true
+                                items: inspector.session.availableLuts.map(
+                                    function (l) { return l.label })
+                                currentIndex: {
+                                    if (!effectBlock.modelData.file)
+                                        return 0
+                                    const current = effectBlock.modelData.file.value
+                                    const list = inspector.session.availableLuts
+                                    for (var i = 0; i < list.length; i++) {
+                                        if (list[i].path === current)
+                                            return i
+                                    }
+                                    return 0
+                                }
+                                onActivated: (index) =>
+                                    inspector.session.setEffectFile(
+                                        effectBlock.index,
+                                        inspector.session.availableLuts[index].path)
+                            }
+                        }
+
                         // parameters
                         Repeater {
                             model: effectBlock.modelData.params

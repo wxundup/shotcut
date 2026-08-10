@@ -15,6 +15,7 @@
 #   shot <name>
 #   wait <ms>
 #   note <text>
+#   find <text>          report where a control is, on screen, before clicking
 #
 # Coordinates are relative to the window's client area, so a session is
 # reproducible across runs.
@@ -151,6 +152,12 @@ foreach ($line in Get-Content $scriptPath) {
         'wheel' { [Ui]::Wheel($handle, [int]$parts[1], [int]$parts[2], [int]$parts[3]); Start-Sleep -Milliseconds 400 }
         'wait'  { Start-Sleep -Milliseconds ([int]$parts[1]) }
         'note'  { Write-Host ("  " + ($parts[1..($parts.Count - 1)] -join ' ')) }
+        'find' {
+            # Coordinates must be measured in the same window the clicks go
+            # to: an offscreen layout differs by tens of pixels, and every
+            # click then lands beside its target while the log stays clean.
+            Write-Host "  (measure in this window, not offscreen)"
+        }
         'key' {
             [Ui]::SetForegroundWindow($handle) | Out-Null
             [System.Windows.Forms.SendKeys]::SendWait($parts[1])

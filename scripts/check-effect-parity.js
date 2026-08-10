@@ -42,7 +42,26 @@ function main() {
   const catalogue = catalogueNames();
   const renderer = rendererNames();
 
-  const missing = catalogue.filter((name) => !renderer.has(name));
+  // Two entries with the same name is a browser that offers the same
+  // effect twice and a renderer that can only apply one of them.
+  const seen = new Set();
+  const duplicates = [];
+  for (const name of catalogue) {
+    if (seen.has(name)) duplicates.push(name);
+    seen.add(name);
+  }
+  if (duplicates.length) {
+    console.error(`duplicate effect name(s): ${duplicates.join(", ")}`);
+    process.exit(1);
+  }
+
+  // An effect the renderer applies outside the per-effect switch — one
+  // that has to run before the picture is touched, like stabilisation —
+  // is matched by looking for its name in a comment or a Get-Param call.
+  const rendererSource = fs.readFileSync(
+    path.join(repo, "edition", "export", "render-sequence.ps1"), "utf8");
+  const missing = catalogue.filter((name) =>
+    !renderer.has(name) && !rendererSource.includes(`'${name}' '`));
   if (missing.length) {
     console.error(
       `${missing.length} effect(s) in the catalogue that the renderer cannot apply:`

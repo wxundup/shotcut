@@ -35,6 +35,15 @@ Item {
         sessionModel.playhead = Math.max(0, Math.min(1, position))
     }
 
+    // Track state, readable and settable from a host application or a test.
+    function trackMuted(index) { return sessionModel.tracks[index].muted }
+    function toggleMute(index) {
+        sessionModel.setTrackProperty(index, "muted", !sessionModel.tracks[index].muted)
+    }
+
+    // Which workspace is showing, readable by a host application or a test.
+    readonly property string workspaceName: sessionModel.workspace
+
     // Switch workspaces from outside the toolbar (menu, shortcut, host app).
     function openWorkspace(name) {
         if (sessionModel.workspaces.indexOf(name) !== -1)
@@ -216,8 +225,29 @@ Item {
             // Defaults come from the catalogue, so the browser, the
             // inspector and the renderer cannot disagree about an effect.
             const params = Catalogue.defaultParams(name)
-            effects = effects.concat([{ name: name, on: true, params: params }])
+            const instance = { name: name, on: true, params: params }
+            // A LUT needs a file before it can do anything; carry the slot
+            // so the inspector knows to offer one.
+            const file = Catalogue.fileSlot(name)
+            if (file)
+                instance.file = { name: file.name, value: "", filter: file.filter }
+            effects = effects.concat([instance])
         }
+
+        // Point a file-valued effect — a LUT — at a file.
+        function setEffectFile(index, path) {
+            const next = effects.slice()
+            const effect = Object.assign({}, next[index])
+            effect.file = Object.assign({}, effect.file, { value: path })
+            next[index] = effect
+            effects = next
+        }
+
+        // The looks shipped alongside the interface, for the chooser.
+        readonly property var availableLuts: [
+            { label: qsTr("None"), path: "" },
+            { label: "Warm Highlights", path: "luts/Warm Highlights.cube" },
+        ]
 
         function removeEffect(index) {
             const next = effects.slice()
@@ -688,15 +718,19 @@ Item {
             Layout.fillHeight: true
             spacing: 0
 
+            // A hidden item still takes its share of a layout unless its
+            // width collapses too, so every panel claimed space whatever
+            // the workspace and drew over the one that should show.
             LibraryPanel {
-                Layout.preferredWidth: 264
+                Layout.preferredWidth: visible ? 264 : 0
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Edit"
                 session: sessionModel
             }
 
             PreviewPanel {
-                Layout.fillWidth: true
+                Layout.fillWidth: visible
+                Layout.preferredWidth: visible ? -1 : 0
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Edit"
                     || sessionModel.workspace === "Color"
@@ -706,28 +740,31 @@ Item {
             }
 
             ColorPanel {
-                Layout.fillWidth: true
+                Layout.fillWidth: visible
+                Layout.preferredWidth: visible ? -1 : 0
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Color"
                 session: sessionModel
             }
 
             AudioPanel {
-                Layout.fillWidth: true
+                Layout.fillWidth: visible
+                Layout.preferredWidth: visible ? -1 : 0
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Audio"
                 session: sessionModel
             }
 
             DeliverPanel {
-                Layout.fillWidth: true
+                Layout.fillWidth: visible
+                Layout.preferredWidth: visible ? -1 : 0
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Deliver"
                 session: sessionModel
             }
 
             InspectorPanel {
-                Layout.preferredWidth: 300
+                Layout.preferredWidth: visible ? 300 : 0
                 Layout.fillHeight: true
                 visible: sessionModel.workspace === "Edit"
                 session: sessionModel

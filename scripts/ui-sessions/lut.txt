@@ -1,0 +1,9 @@
+# Add a LUT to the selected clip and choose a look for it.
+note find the LUT entry in the effects browser and add it
+wait 800
+shot 01-open
+note search the browser for it
+click 1470 145
+key LUT
+wait 600
+shot 02-searched

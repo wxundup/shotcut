@@ -1,0 +1,20 @@
+﻿1
+00:00:00,000 --> 00:00:02,880
+This is a test of the caption system.
+
+2
+00:00:02,986 --> 00:00:05,426
+quick brown fox jumps over the lazy dog.
+
+3
+00:00:05,972 --> 00:00:08,452
+Editing software should transcribe speech
+
+4
+00:00:08,452 --> 00:00:08,972
+without saying.
+
+5
+00:00:08,972 --> 00:00:09,959
+at anywhere.
+

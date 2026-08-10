@@ -45,8 +45,27 @@ function main() {
     const first = effect.params[0];
     values[first.name] = first.value === first.max ? first.min : first.max;
 
-    const fragment = effect.render(values, effect);
+    let fragment = effect.render(values, effect);
+
+    // An effect that needs an analysis pass names a file the renderer
+    // supplies. Point it at a real one so the filter is still checked
+    // rather than skipped.
+    if (fragment && effect.needsAnalysis) {
+      const vectors = path.join(repo, "edition", "media", "stabilisation",
+                                "Handheld_01.trf");
+      if (!fs.existsSync(vectors)) {
+        console.warn(`  ${effect.name}: no analysis to check against, skipped`);
+        continue;
+      }
+      // Both separators and the drive colon end a filter argument early.
+      const escaped = vectors.split("\\").join("/").split(":").join("\\:");
+      fragment = fragment.replace("vidstabtransform=",
+                                  `vidstabtransform=input='${escaped}':`);
+    }
     if (!fragment) {
+      // An effect that needs a file — a LUT — is inert until one is
+      // chosen. That is the right behaviour, not a broken filter.
+      if (effect.file) continue;
       failures.push(`${effect.name}: renders nothing with ${first.name} moved`);
       continue;
     }

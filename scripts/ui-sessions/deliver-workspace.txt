@@ -1,0 +1,14 @@
+# Working the Deliver workspace: presets, output, the queue.
+note switch to Deliver
+click 1542 26
+wait 1200
+shot 01-deliver-open
+
+note pick a different preset
+click 400 200
+shot 02-preset-chosen
+
+note start an export
+click 700 300
+wait 1500
+shot 03-export-started

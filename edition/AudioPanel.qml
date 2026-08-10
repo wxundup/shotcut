@@ -13,8 +13,16 @@ Rectangle {
 
     required property var session
 
-    readonly property var audioTracks:
-        session.tracks.filter(function (t) { return t.audio })
+    // Indices of the audio tracks, so a strip can address its own track
+    // without the mixer having to hold a parallel copy of the model.
+    readonly property var audioIndices: {
+        const out = []
+        for (var i = 0; i < session.tracks.length; i++) {
+            if (session.tracks[i].audio)
+                out.push(i)
+        }
+        return out
+    }
 
     // The channel whose processing is on show; the first audio track by
     // default, or whichever strip was clicked.
@@ -60,23 +68,22 @@ Rectangle {
             spacing: Theme.s
 
             Repeater {
-                model: audioPanel.session.tracks
+                model: audioPanel.audioIndices
 
                 ChannelFader {
                     id: channel
                     required property var modelData
-                    required property int index
-                    visible: modelData.audio
-                    Layout.preferredWidth: visible ? implicitWidth : 0
+                    readonly property int index: modelData
+                    readonly property var track: audioPanel.session.tracks[modelData]
                     Layout.fillHeight: true
 
-                    name: modelData.name
-                    gain: modelData.volume
-                    pan: modelData.pan === undefined ? 0 : modelData.pan
+                    name: track.name
+                    gain: channel.track.volume
+                    pan: channel.track.pan === undefined ? 0 : channel.track.pan
                     level: audioPanel.session.levelFor(channel.index)
-                    peak: modelData.peak === undefined ? 0 : modelData.peak
-                    muted: modelData.muted
-                    soloed: modelData.soloed
+                    peak: channel.track.peak === undefined ? 0 : channel.track.peak
+                    muted: channel.track.muted
+                    soloed: channel.track.soloed
 
                     onGainRequested: (value) =>
                         audioPanel.session.setTrackProperty(channel.index, "volume", value)
@@ -84,16 +91,16 @@ Rectangle {
                         audioPanel.session.setTrackProperty(channel.index, "pan", value)
                     onMuteToggled:
                         audioPanel.session.setTrackProperty(
-                            channel.index, "muted", !channel.modelData.muted)
+                            channel.index, "muted", !channel.track.muted)
                     onSoloToggled:
                         audioPanel.session.setTrackProperty(
-                            channel.index, "soloed", !channel.modelData.soloed)
+                            channel.index, "soloed", !channel.track.soloed)
 
-                    MouseArea {
-                        anchors.fill: parent
-                        z: -1
-                        onClicked: audioPanel.focusedTrack = channel.index
-                    }
+                    // Focus follows the strip's own buttons rather than
+                    // covering them: an overlay declared here sits above the
+                    // fader, mute and solo whatever its z, and swallowed
+                    // every click meant for them.
+                    onFocusRequested: audioPanel.focusedTrack = channel.index
                 }
             }
 

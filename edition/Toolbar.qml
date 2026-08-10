@@ -14,7 +14,10 @@ Rectangle {
     signal shareRequested()
 
     // Below this the row cannot hold everything; secondary chrome goes first.
-    readonly property bool compact: width < 1320
+    // Below this the row's fixed items no longer fit and the last of them —
+    // the workspace switcher — is pushed off the window edge, where it
+    // cannot be clicked at all. Measured, not guessed.
+    readonly property bool compact: width < 1700
 
     implicitHeight: 52
     color: Theme.panel
@@ -57,7 +60,7 @@ Rectangle {
             visible: !toolbar.compact
         }
 
-        Item { Layout.fillWidth: true; Layout.maximumWidth: Theme.xxl }
+        Item { Layout.fillWidth: true; Layout.minimumWidth: Theme.s }
 
         // transport
         RowLayout {
@@ -110,7 +113,7 @@ Rectangle {
             color: Theme.textSecondary
         }
 
-        Item { Layout.fillWidth: true; Layout.maximumWidth: Theme.xxl }
+        Item { Layout.fillWidth: true; Layout.minimumWidth: Theme.s }
 
         // session presence
         Row {

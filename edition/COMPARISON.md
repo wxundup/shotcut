@@ -35,7 +35,7 @@ with no account and no service. The rest of that table is parity at best.
 | Formats | H.264, HEVC, ProRes, AAC, PCM | Dozens of codecs, RAW, camera formats, IMF, broadcast delivery |
 | Tracking, warp, morph | None | Standard in all three |
 | Keying | Chroma key and despill | Keyers with spill suppression, edge and light wrap |
-| Captions and speech | None | Automatic transcription and captions in all three |
+| Captions and speech | Local whisper transcription to SRT, no upload | Automatic transcription in all three, cloud-assisted, more accurate |
 | Stabilisation | None | Standard |
 | Multicam | None | Standard |
 | Media management | An index of a folder | Bins, metadata, search, shared libraries, conform and relink |

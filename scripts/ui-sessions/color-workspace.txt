@@ -1,0 +1,33 @@
+# Working the Color workspace: wheels, curve, scopes.
+note switch to Color
+click 1420 26
+wait 800
+shot 01-color-open
+
+note drag the lift wheel
+drag 743 216 768 236
+shot 02-lift-dragged
+
+note drag the gamma wheel
+drag 877 216 857 201
+shot 03-gamma-dragged
+
+note drag the gain wheel
+drag 1011 216 1036 191
+shot 04-gain-dragged
+
+note add a point to the tone curve and bend it
+click 1500 215
+drag 1500 215 1510 195
+shot 05-curve-bent
+
+note reset the grade
+click 1527 109
+shot 06-reset
+
+note play with scopes live
+key " "
+wait 2000
+shot 07-scopes-live
+key " "
+shot 08-stopped

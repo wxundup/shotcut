@@ -1,0 +1,37 @@
+# Working the Audio workspace: faders, mute, solo, the processing rack.
+note switch to Audio
+click 1478 26
+wait 800
+shot 01-audio-open
+
+note pull the A1 fader down
+drag 44 250 44 330
+shot 02-fader-pulled
+
+note mute A1
+click 33 397
+shot 03-muted
+
+note unmute, then solo
+click 33 397
+click 58 397
+shot 04-soloed
+
+note focus the second channel
+click 102 300
+shot 05-second-channel
+
+note drag an EQ band
+drag 1180 265 1120 240
+shot 06-eq-dragged
+
+note change the compressor threshold
+drag 1000 372 900 372
+shot 07-threshold
+
+note play and watch the meters
+key " "
+wait 2000
+shot 08-metering
+key " "
+shot 09-stopped

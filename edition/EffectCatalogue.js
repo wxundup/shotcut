@@ -428,6 +428,157 @@ var effects = [
         },
     },
 
+    // ---- looks ------------------------------------------------------------------
+    {
+        name: "LUT", group: "Looks",
+        // A .cube file is how a look travels between editors, so this is
+        // the one effect whose value is a path rather than a number.
+        params: [
+            { name: "Mix", value: 0, min: 0, max: 1 },
+        ],
+        file: { name: "File", value: "", filter: "*.cube *.3dl" },
+        render: function (p, effect) {
+            const path = effect && effect.file ? effect.file.value : ""
+            if (!path || near(p["Mix"], 0))
+                return ""
+            // Escaped for a filter argument: Windows drive colons and
+            // backslashes both terminate the parse otherwise.
+            const escaped = path.replace(/\\/g, "/").replace(/:/g, "\\:")
+            const lut = "lut3d=file='" + escaped + "'"
+            if (near(p["Mix"], 1))
+                return lut
+            // Partial strength is the graded and ungraded pictures blended.
+            return "split[luta][lutb];[luta]" + lut +
+                   "[lutg];[lutb][lutg]blend=all_mode=normal:all_opacity=" +
+                   p["Mix"].toFixed(3)
+        },
+    },
+    {
+        name: "Vibrance", group: "Looks",
+        params: [{ name: "Amount", value: 0, min: -2, max: 2 }],
+        render: function (p) {
+            const v = p["Amount"]
+            if (near(v, 0)) return ""
+            // Unlike saturation this leaves already-saturated colour alone,
+            // which is what keeps skin tones from going lurid.
+            return "vibrance=intensity=" + v.toFixed(3)
+        },
+    },
+
+    // ---- finishing -------------------------------------------------------------
+    {
+        name: "Unsharp Mask", group: "Finishing",
+        params: [
+            { name: "Amount", value: 0, min: 0, max: 3 },
+            { name: "Radius", value: 1, min: 0.5, max: 5 },
+        ],
+        render: function (p) {
+            const a = p["Amount"]
+            if (near(a, 0)) return ""
+            // The kernel must be odd, and larger than 3 to be worth it.
+            const size = Math.max(3, Math.round(p["Radius"] * 2) * 2 + 1)
+            return "unsharp=luma_msize_x=" + size + ":luma_msize_y=" + size +
+                   ":luma_amount=" + a.toFixed(3)
+        },
+    },
+    {
+        name: "Film Grain", group: "Finishing",
+        params: [{ name: "Amount", value: 0, min: 0, max: 60 }],
+        render: function (p) {
+            const a = p["Amount"]
+            if (near(a, 0)) return ""
+            return "noise=alls=" + Math.round(a) + ":allf=t+u"
+        },
+    },
+    {
+        name: "Chromatic Aberration", group: "Finishing",
+        params: [{ name: "Amount", value: 0, min: 0, max: 20 }],
+        render: function (p) {
+            const a = Math.round(p["Amount"])
+            if (a === 0) return ""
+            // Red and blue pulled apart, green held, as a real lens does.
+            return "rgbashift=rh=" + a + ":bh=" + (-a)
+        },
+    },
+
+    // ---- repair, continued ---------------------------------------------------------
+    {
+        name: "Temporal Denoise", group: "Repair",
+        params: [{ name: "Strength", value: 0, min: 0, max: 1 }],
+        render: function (p) {
+            const s = p["Strength"]
+            if (near(s, 0)) return ""
+            // Averages across frames, so it clears sensor noise without
+            // softening detail the way a spatial blur would.
+            return "atadenoise=0a=" + (0.02 + s * 0.1).toFixed(4) +
+                   ":1a=" + (0.02 + s * 0.1).toFixed(4) +
+                   ":2a=" + (0.02 + s * 0.1).toFixed(4)
+        },
+    },
+    {
+        name: "Detail Denoise", group: "Repair",
+        params: [{ name: "Strength", value: 0, min: 0, max: 10 }],
+        render: function (p) {
+            const s = p["Strength"]
+            if (near(s, 0)) return ""
+            // Slow but detail-preserving; the one to reach for on a still
+            // shot where hqdn3d smears texture.
+            return "nlmeans=s=" + s.toFixed(2)
+        },
+    },
+
+    // ---- stylise, continued --------------------------------------------------------
+    {
+        name: "Emboss", group: "Stylise",
+        params: [{ name: "Amount", value: 0, min: 0, max: 1 }],
+        render: function (p) {
+            const a = p["Amount"]
+            if (near(a, 0)) return ""
+            return "convolution=" +
+                   "'-2 -1 0 -1 1 1 0 1 2:" +
+                   "-2 -1 0 -1 1 1 0 1 2:" +
+                   "-2 -1 0 -1 1 1 0 1 2:" +
+                   "-2 -1 0 -1 1 1 0 1 2'"
+        },
+    },
+    {
+        name: "Posterise", group: "Stylise",
+        params: [{ name: "Levels", value: 0, min: 0, max: 32, step: 1 }],
+        render: function (p) {
+            const n = Math.round(p["Levels"])
+            if (n === 0) return ""
+            // Quantise each channel to n steps.
+            const step = Math.max(2, n)
+            return "lut=r='floor(val/(256/" + step + "))*(256/" + step + ")':" +
+                   "g='floor(val/(256/" + step + "))*(256/" + step + ")':" +
+                   "b='floor(val/(256/" + step + "))*(256/" + step + ")'"
+        },
+    },
+    {
+        name: "Erode", group: "Stylise",
+        params: [{ name: "Amount", value: 0, min: 0, max: 1, step: 1 }],
+        render: function (p) {
+            return p["Amount"] >= 0.5 ? "erosion" : ""
+        },
+    },
+
+    {
+        name: "Stabilise", group: "Repair",
+        params: [{ name: "Smoothing", value: 0, min: 0, max: 60 }],
+        // The picture cannot be stabilised from the effect alone: the
+        // camera's motion has to be measured across the whole clip first,
+        // by analyse-stabilisation.ps1. The renderer warns rather than
+        // silently doing nothing if that has not been done.
+        needsAnalysis: true,
+        render: function (p) {
+            const s = Math.round(p["Smoothing"])
+            if (s === 0) return ""
+            // The vectors file is substituted by the renderer, which knows
+            // where the analysis for this clip's media lives.
+            return "vidstabtransform=smoothing=" + s + ":crop=black"
+        },
+    },
+
     // ---- audio: applied in the audio chain ------------------------------------
     { name: "Gain", group: "Audio", audio: true,
       params: [{ name: "Gain", value: 1, min: 0, max: 4 }] },
@@ -446,6 +597,16 @@ function find(name) {
 }
 
 // Default parameter list for a newly added effect.
+// The file slot an effect needs, if it has one. A LUT is the only kind
+// so far: its value is a path, not a number.
+function fileSlot(name) {
+    for (var i = 0; i < effects.length; i++) {
+        if (effects[i].name === name)
+            return effects[i].file || null
+    }
+    return null
+}
+
 function defaultParams(name) {
     var effect = find(name)
     if (!effect)

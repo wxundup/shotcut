@@ -53,3 +53,6 @@ shotcut.code-workspace
 
 # EdiTogether packaging output
 /dist/
+
+# Whisper models are fetched on first use, not committed
+/edition/media/models/
