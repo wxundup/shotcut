@@ -26,14 +26,15 @@ with no account and no service. The rest of that table is parity at best.
 
 | Capability | EdiTogether | Premiere / Resolve / CapCut |
 |---|---|---|
-| Effects | 19, of which 14 render as filters | Hundreds, plus third-party ecosystems (Sapphire, Red Giant, FxFactory) |
-| Editing through the new interface | Read-only: it displays the open project | Full editing, obviously |
+| Effects | 44, of which 38 render and are checked against FFmpeg | Hundreds, plus third-party ecosystems (Sapphire, Red Giant, FxFactory) |
+| Editing through the new interface | Moves, trims, effects and grading, on its own project model. Hosted in the application it reads the open MLT document but does not yet write to it | Full editing, obviously |
 | GPU | Encode and decode only; compositing is CPU | Full GPU pipelines; Resolve is built on one |
-| Colour grading | Lift/gamma/gain wheels and a tone curve | Resolve's node graph is the industry reference and is not close |
+| Colour grading | Lift/gamma/gain wheels, a tone curve, and .cube LUTs | Resolve's node graph is the industry reference and is not close |
 | Audio | 3-band EQ, compressor, limiter per channel | Full mixers, buses, sends, VST/AU hosting, Fairlight in Resolve |
 | Text and titles | Two generators, no styling | Essential Graphics, Fusion titles, animated templates |
 | Formats | H.264, HEVC, ProRes, AAC, PCM | Dozens of codecs, RAW, camera formats, IMF, broadcast delivery |
-| Tracking, keying, warp | None | Standard in all three |
+| Tracking, warp, morph | None | Standard in all three |
+| Keying | Chroma key and despill | Keyers with spill suppression, edge and light wrap |
 | Captions and speech | None | Automatic transcription and captions in all three |
 | Stabilisation | None | Standard |
 | Multicam | None | Standard |
